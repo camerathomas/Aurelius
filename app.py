@@ -4,6 +4,7 @@ Start met: python -m streamlit run app.py
 """
 
 import streamlit as st
+import time
 from datetime import datetime
 
 # Eigen modules
@@ -23,7 +24,7 @@ st.set_page_config(
 # Database — met robuuste foutafhandeling
 # ============================================================
 def check_database():
-    """Controleert of de database-configuratie klopt. Geeft (True, None) of (False, foutmelding)."""
+    """Controleert of de database-configuratie klopt."""
     try:
         secrets = st.secrets["connections"]["aurelius"]
     except KeyError:
@@ -38,29 +39,21 @@ def check_database():
             "**Belangrijk:** klik daarna op **Reboot** in het ⋮-menu van je app. "
             "Secrets worden alleen bij het opstarten ingelezen."
         )
-
     if "url" not in secrets:
-        return False, "De sleutel `url` ontbreekt in de secrets-sectie `connections.aurelius`."
-
+        return False, "De sleutel `url` ontbreekt in de secrets-sectie."
     if "auth_token" not in secrets:
-        return False, "De sleutel `auth_token` ontbreekt in de secrets-sectie `connections.aurelius`."
-
+        return False, "De sleutel `auth_token` ontbreekt in de secrets-sectie."
     return True, None
 
 
-# Check de database-configuratie
 db_ok, db_fout = check_database()
 
 if not db_ok:
     st.error("⚠️ **Database niet beschikbaar**")
     st.markdown(db_fout)
-    st.info(
-        "💡 **Je kunt de app niet gebruiken zonder database.** "
-        "Los de configuratie op en herstart de app."
-    )
+    st.info("💡 **Je kunt de app niet gebruiken zonder database.**")
     st.stop()
 
-# Importeer de opslag-module pas als de database-configuratie klopt
 from opslag import (
     initialiseer,
     laad_profiel,
@@ -70,12 +63,96 @@ from opslag import (
     wis_gesprek,
 )
 
-# Initialiseer de database
 try:
     initialiseer()
 except Exception as e:
     st.error(f"⚠️ **Database-fout bij initialisatie:** {e}")
     st.stop()
+
+# ============================================================
+# Fasen en vragen
+# ============================================================
+FASEN = [
+    "incheck", "opening", "verkennen", "verdiepen",
+    "verbreden", "integreren", "afsluiten", "nazit"
+]
+
+FASE_TIJDEN = {
+    "incheck": (0, 2),
+    "opening": (2, 5),
+    "verkennen": (5, 10),
+    "verdiepen": (10, 20),
+    "verbreden": (20, 30),
+    "integreren": (30, 35),
+    "afsluiten": (35, 40),
+    "nazit": (40, 999),
+}
+
+VRAGEN_PER_FASE = {
+    "incheck": [
+        "Hoe gaat het vandaag?",
+        "Wat wil je bereiken in dit gesprek?",
+        "Hoe lang heb je?",
+    ],
+    "opening": [
+        "Waar wil je beginnen?",
+        "Wat speelt er op dit moment?",
+        "Wat houdt je bezig?",
+    ],
+    "verkennen": [
+        "Wat valt je op als je hiernaar kijkt?",
+        "Wat gebeurt er als je hieraan denkt?",
+        "Wat maakt dit belangrijk voor je?",
+    ],
+    "verdiepen": [
+        "Wat zit eronder?",
+        "Wat raakt je hierin?",
+        "Wat vermijd je door hier niet naar te kijken?",
+    ],
+    "verbreden": [
+        "Welke perspectieven zijn er?",
+        "Wat zou een filosoof hierover zeggen?",
+        "Wat als je het tegenovergestelde zou denken?",
+    ],
+    "integreren": [
+        "Wat neem je mee?",
+        "Wat ga je doen?",
+        "Wat is je volgende stap?",
+    ],
+    "afsluiten": [
+        "Wat was belangrijk vandaag?",
+        "Wat neem je mee naar de volgende keer?",
+    ],
+    "nazit": [
+        "Wat wil je nog bespreken?",
+        "Waar wil je nog over filosoferen?",
+    ],
+}
+
+# ============================================================
+# Hulp: actieve tijd en fase
+# ============================================================
+def update_actieve_tijd(profiel):
+    """Werkt de actieve tijd bij, met reset na een lange pauze."""
+    nu = time.time()
+    laatste = profiel.get("laatste_bericht_tijd")
+    if laatste:
+        verschil = nu - laatste
+        # Reset als de pauze langer dan 15 minuten was
+        if verschil < 15 * 60:
+            profiel["actieve_tijd"] = profiel.get("actieve_tijd", 0) + verschil
+    profiel["laatste_bericht_tijd"] = nu
+    return profiel
+
+
+def bepaal_fase(profiel):
+    """Bepaalt de huidige fase op basis van actieve tijd."""
+    minuten = profiel.get("actieve_tijd", 0) / 60
+    for fase, (start, eind) in FASE_TIJDEN.items():
+        if start <= minuten < eind:
+            return fase
+    return "nazit"
+
 
 # ============================================================
 # Incheck-vragen
@@ -91,9 +168,7 @@ INCHECK_VRAGEN = [
         "sleutel": "overzicht",
         "vraag": "Heb je op dit moment goed overzicht over je leven?",
         "type": "slider",
-        "min": 1,
-        "max": 10,
-        "default": 5,
+        "min": 1, "max": 10, "default": 5,
         "toelichting": "1 = geen overzicht, 10 = volledig overzicht",
     },
     {
@@ -171,7 +246,6 @@ pantheon = st.sidebar.multiselect(
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔧 Parameters")
 
-temperature = st.sidebar.slider("Temperature", 0.0, 1.5, 0.8, 0.1)
 max_historie = st.sidebar.slider(
     "Max. berichten in context", 4, 40, 12, 2,
     help="Hoeveel eerdere berichten de modellen zien."
@@ -192,7 +266,7 @@ if st.sidebar.button("Wis alle gesprekken"):
         st.sidebar.error(f"Fout bij wissen: {e}")
 
 # ============================================================
-# Sessie-state (voor UI-state, niet voor data)
+# Sessie-state
 # ============================================================
 if "incheck" not in st.session_state:
     st.session_state.incheck = {}
@@ -209,13 +283,12 @@ if "profiel" not in st.session_state:
         st.error(f"⚠️ Kon profiel niet laden: {e}")
         st.stop()
 
-# Als de gebruiker wisselt, herlaad het profiel en reset de incheck
+# Als de gebruiker wisselt, herlaad het profiel
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     try:
         st.session_state.profiel = laad_profiel(gebruiker_id)
         st.session_state.huidige_gebruiker = gebruiker_id
 
-        # Laad het gesprek uit de database
         opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
         st.session_state.geschiedenis = [
             {
@@ -227,7 +300,6 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
             for b in opgeslagen
         ]
 
-        # Als er al gesprekken zijn, is de incheck al gedaan
         if st.session_state.geschiedenis:
             st.session_state.incheck_afgerond = True
             st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
@@ -240,13 +312,13 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
         st.stop()
 
 # ============================================================
-# Hoofdinterface — titel
+# Hoofdinterface
 # ============================================================
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
 
 # ============================================================
-# Incheck — als nog niet afgerond
+# Incheck
 # ============================================================
 if not st.session_state.incheck_afgerond:
     st.markdown("---")
@@ -256,9 +328,8 @@ if not st.session_state.incheck_afgerond:
     stap = st.session_state.incheck_stap
     totaal = len(INCHECK_VRAGEN)
 
-    voortgang = stap / totaal
     if stap < totaal:
-        st.progress(voortgang, text=f"Vraag {stap + 1} van {totaal}")
+        st.progress(stap / totaal, text=f"Vraag {stap + 1} van {totaal}")
     else:
         st.progress(1.0, text="Klaar")
 
@@ -285,10 +356,7 @@ if not st.session_state.incheck_afgerond:
             if vraag.get("toelichting"):
                 st.caption(vraag["toelichting"])
             antwoord = st.slider(
-                "Score",
-                vraag["min"],
-                vraag["max"],
-                vraag["default"],
+                "Score", vraag["min"], vraag["max"], vraag["default"],
                 label_visibility="collapsed",
                 key=f"incheck_{vraag['sleutel']}"
             )
@@ -299,8 +367,7 @@ if not st.session_state.incheck_afgerond:
 
         elif vraag["type"] == "keuze":
             antwoord = st.radio(
-                "Keuze",
-                vraag["opties"],
+                "Keuze", vraag["opties"],
                 label_visibility="collapsed",
                 key=f"incheck_{vraag['sleutel']}"
             )
@@ -323,17 +390,14 @@ if not st.session_state.incheck_afgerond:
             st.markdown(f"**4e plaats**: {pos4}")
 
             if st.button("Volgende ➡️"):
-                volgorde = [pos1, pos2, pos3, pos4]
-                st.session_state.incheck["volgorde"] = volgorde
+                st.session_state.incheck["volgorde"] = [pos1, pos2, pos3, pos4]
                 st.session_state.incheck_stap += 1
                 st.rerun()
 
     else:
         st.markdown("### ✅ Klaar")
         st.markdown("Dit is wat ik heb onthouden:")
-
         incheck = st.session_state.incheck
-
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
         st.markdown(f"- **Overzicht**: {incheck.get('overzicht', '—')}/10")
         st.markdown(f"- **Intentie**: {incheck.get('intentie', '—')}")
@@ -348,6 +412,8 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
+            st.session_state.profiel["actieve_tijd"] = 0
+            st.session_state.profiel["laatste_bericht_tijd"] = time.time()
             try:
                 bewaar_profiel(st.session_state.profiel)
             except Exception as e:
@@ -357,10 +423,29 @@ if not st.session_state.incheck_afgerond:
     st.stop()
 
 # ============================================================
-# Gesprek — na de incheck
+# Gesprek
 # ============================================================
-
 incheck = st.session_state.get("incheck", {})
+
+# Update de actieve tijd bij elke rerun
+st.session_state.profiel = update_actieve_tijd(st.session_state.profiel)
+
+# Bepaal de huidige fase
+fase = bepaal_fase(st.session_state.profiel)
+minuten = round(st.session_state.profiel.get("actieve_tijd", 0) / 60, 1)
+
+# Toon fase en tijd
+st.markdown(f"---")
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.markdown(f"**🕐 Fase:** {fase.capitalize()} · **{minuten} min** actief")
+with col2:
+    if fase == "nazit":
+        st.markdown("🌙 **Nazit**")
+    else:
+        st.markdown(f"⏳ {FASE_TIJDEN[fase][1]} min")
+
+# Toon incheck in expander
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
@@ -371,6 +456,7 @@ if incheck:
             st.markdown(f"- **Volgorde**: {' → '.join(volgorde)}")
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
+# Gesprek renderen
 gesprek_container = st.container()
 
 def toon_bericht(naam, tekst, icoon, tijd=None):
@@ -386,14 +472,13 @@ for b in st.session_state.geschiedenis:
     toon_bericht(b["naam"], b["tekst"], b["icoon"], b.get("tijd"))
 
 # ============================================================
-# Eerste coach-beurt na de incheck
+# Eerste coach-beurt
 # ============================================================
 if not st.session_state.geschiedenis:
     emotie = incheck.get("emotie", "")
     overzicht = incheck.get("overzicht", 5)
     intentie = incheck.get("intentie", "")
     volgorde = incheck.get("volgorde", [])
-
     eerste_waarde = volgorde[0] if volgorde else "Respect"
 
     opening = (
@@ -433,6 +518,11 @@ if gebruiker_input:
         pass
     toon_bericht("Jij", gebruiker_input, "🧑", tijd)
 
+    # Update actieve tijd
+    st.session_state.profiel = update_actieve_tijd(st.session_state.profiel)
+    fase = bepaal_fase(st.session_state.profiel)
+
+    # Kies filosoof
     if pantheon:
         filosoof_naam = kies_filosoof(
             st.session_state.profiel,
@@ -444,12 +534,16 @@ if gebruiker_input:
 
     filosoof = FILOSOFEN[filosoof_naam]
 
+    # Bouw de prompt met fase en vragen
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
         profiel=st.session_state.profiel,
-        modus="Coach"
+        modus="Coach",
+        fase=fase,
+        vragen=VRAGEN_PER_FASE.get(fase, [])
     )
 
+    # Bouw de messages
     context = st.session_state.geschiedenis[-max_historie:]
     messages = []
     for b in context[:-1]:
@@ -462,7 +556,6 @@ if gebruiker_input:
             model=model_naam,
             messages=messages,
             system_prompt=system_prompt,
-            temperature=temperature,
             provider=provider_key
         )
 
