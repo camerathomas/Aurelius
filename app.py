@@ -58,42 +58,48 @@ except Exception as e:
     st.stop()
 
 # ============================================================
-# Fasen en vragen
+# Fasen (incheck is GEEN fase — die is al geweest)
 # ============================================================
 FASE_PERCENTAGES = {
-    "incheck":    (0.00, 0.08),
-    "opening":    (0.08, 0.20),
-    "verkennen":  (0.20, 0.40),
-    "verdiepen":  (0.40, 0.72),
-    "verbreden":  (0.72, 0.88),
-    "integreren": (0.88, 0.96),
-    "afsluiten":  (0.96, 1.00),
+    "opening":    (0.00, 0.10),
+    "verkennen":  (0.10, 0.30),
+    "verdiepen":  (0.30, 0.60),
+    "verbreden":  (0.60, 0.80),
+    "integreren": (0.80, 0.92),
+    "afsluiten":  (0.92, 1.00),
 }
 
+FASE_VOLGORDE = ["opening", "verkennen", "verdiepen", "verbreden", "integreren", "afsluiten"]
+
 VRAGEN_PER_FASE = {
-    "incheck":   ["Hoe gaat het vandaag?", "Wat wil je bereiken?", "Hoe lang heb je?"],
-    "opening":   ["Waar wil je beginnen?", "Wat speelt er?", "Wat houdt je bezig?"],
-    "verkennen": ["Wat valt je op?", "Wat gebeurt er als je hieraan denkt?", "Wat maakt dit belangrijk?"],
-    "verdiepen": ["Wat zit eronder?", "Wat raakt je hierin?", "Wat vermijd je?"],
-    "verbreden": ["Welke perspectieven zijn er?", "Wat zou een filosoof zeggen?", "Wat als het tegenovergestelde waar is?"],
-    "integreren":["Wat neem je mee?", "Wat ga je doen?", "Wat is je volgende stap?"],
-    "afsluiten": ["Wat was belangrijk vandaag?", "Wat neem je mee naar de volgende keer?"],
-    "nazit":     ["Wat wil je nog bespreken?", "Waar wil je nog over filosoferen?"],
+    "opening":    ["Waar wil je beginnen?", "Wat speelt er?", "Wat houdt je bezig?"],
+    "verkennen":  ["Wat valt je op?", "Wat gebeurt er als je hieraan denkt?", "Wat maakt dit belangrijk?"],
+    "verdiepen":  ["Wat zit eronder?", "Wat raakt je hierin?", "Wat vermijd je?"],
+    "verbreden":  ["Welke perspectieven zijn er?", "Wat zou een filosoof zeggen?", "Wat als het tegenovergestelde waar is?"],
+    "integreren": ["Wat neem je mee?", "Wat ga je doen?", "Wat is je volgende stap?"],
+    "afsluiten":  ["Wat was belangrijk vandaag?", "Wat neem je mee naar de volgende keer?"],
 }
 
 # ============================================================
 # Tijdsysteem
 # ============================================================
-PAUZE_DREMPEL = 30  # seconden
+PAUZE_DREMPEL = 90   # seconden — tijd tussen berichten die meetelt
+BASIS_MARGE = 30     # seconden per beurt als er een lange pauze was
 
 def update_sessie_tijd(profiel):
-    """Werkt de sessietijd bij. Pauzes langer dan 30 sec tellen niet mee."""
+    """Werkt de sessietijd bij.
+
+    - Als de pauze korter is dan PAUZE_DREMPEL: volledige tijd meetellen.
+    - Anders: alleen BASIS_MARGE meetellen.
+    """
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
     verschil = nu - laatste
 
     if verschil < PAUZE_DREMPEL:
         profiel["sessie_tijd"] = profiel.get("sessie_tijd", 0) + verschil
+    else:
+        profiel["sessie_tijd"] = profiel.get("sessie_tijd", 0) + BASIS_MARGE
 
     profiel["laatste_bericht"] = nu
     return profiel
@@ -107,7 +113,7 @@ def bepaal_fase(profiel):
     minuten = bereken_sessie_minuten(profiel)
     duur = profiel.get("sessie_duur", 25)
     if duur <= 0:
-        return "incheck"
+        return "opening"
     percentage = minuten / duur
 
     for fase, (start, eind) in FASE_PERCENTAGES.items():
@@ -318,7 +324,7 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
 
-            # Sessie-tijd initialiseren
+            # Sessie-tijd initialiseren — begint NU pas
             duur_map = {"Kort (10 min)": 10, "Standaard (25 min)": 25, "Diep (50 min)": 50}
             st.session_state.profiel["sessie_duur"] = duur_map.get(incheck.get("duur"), 25)
             st.session_state.profiel["sessie_start"] = time.time()
@@ -344,7 +350,7 @@ minuten = bereken_sessie_minuten(st.session_state.profiel)
 duur = st.session_state.profiel.get("sessie_duur", 25)
 resterend = max(0, duur - minuten)
 
-# Toon de statusbalk
+# Statusbalk
 st.markdown("---")
 col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
@@ -357,10 +363,8 @@ with col3:
     else:
         st.markdown(f"⏳ **{resterend:.1f}** min")
 
-# Toon de voortgangsbalk van de fasen
-FASE_VOLGORDE = ["incheck", "opening", "verkennen", "verdiepen", "verbreden", "integreren", "afsluiten"]
+# Fase-voortgang
 huidige_idx = FASE_VOLGORDE.index(fase) if fase in FASE_VOLGORDE else len(FASE_VOLGORDE)
-
 fase_weergave = ""
 for i, f in enumerate(FASE_VOLGORDE):
     if i < huidige_idx:
@@ -369,10 +373,9 @@ for i, f in enumerate(FASE_VOLGORDE):
         fase_weergave += f"**▶️ {f}** "
     else:
         fase_weergave += f"⬜ {f} "
-
 st.markdown(f"<small>{fase_weergave}</small>", unsafe_allow_html=True)
 
-# Toon incheck in expander
+# Incheck expander
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
