@@ -75,44 +75,47 @@ def chat_ollama(model, messages, system_prompt=None, temperature=0.8, timeout=24
 # ============================================================
 # Gemini
 # ============================================================
-def chat_gemini(model, messages, system_prompt=None, temperature=0.8):
-    """Stuurt een chatverzoek naar Gemini."""
+import time
+
+def chat_gemini(model, messages, system_prompt=None, temperature=0.8, retries=3):
+    """Stuurt een chatverzoek naar Gemini, met retry bij 503."""
     api_key = _laad_gemini_key()
     if not api_key:
-        return "⚠️ Geen Gemini API-sleutel gevonden. Zet GEMINI_API_KEY in secrets."
+        return "⚠️ Geen Gemini API-sleutel gevonden."
 
-    try:
-        from google import genai
-        from google.genai import types
+    for poging in range(retries):
+        try:
+            from google import genai
+            from google.genai import types
 
-        client = genai.Client(api_key=api_key)
+            client = genai.Client(api_key=api_key)
 
-        # Bouw de inhoud op voor de nieuwe SDK
-        contents = []
-        for m in messages:
-            rol = "user" if m["role"] == "user" else "model"
-            contents.append(
-                types.Content(
-                    role=rol,
-                    parts=[types.Part(text=m["content"])]
+            contents = []
+            for m in messages:
+                rol = "user" if m["role"] == "user" else "model"
+                contents.append(
+                    types.Content(role=rol, parts=[types.Part(text=m["content"])])
                 )
+
+            config = types.GenerateContentConfig(
+                temperature=temperature,
+                system_instruction=system_prompt,
             )
 
-        config = types.GenerateContentConfig(
-            temperature=temperature,
-            system_instruction=system_prompt,
-        )
+            response = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=config,
+            )
 
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
+            return response.text
 
-        return response.text
-
-    except Exception as e:
-        return f"⚠️ Gemini fout: {e}"
+        except Exception as e:
+            fout = str(e)
+            if "503" in fout and poging < retries - 1:
+                time.sleep(3)
+                continue
+            return f"⚠️ Gemini fout: {e}"
 
 
 # ============================================================
