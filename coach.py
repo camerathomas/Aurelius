@@ -13,13 +13,32 @@ OLLAMA_URL = "http://localhost:11434/api/chat"
 
 
 def _laad_gemini_key():
-    """Laadt de Gemini API-sleutel uit Streamlit secrets of omgeving."""
+    """Laadt de Gemini API-sleutel uit Streamlit secrets of omgeving.
+
+    Zoekt op drie plekken:
+    1. Onder [connections.aurelius] (nieuwe locatie)
+    2. Op de root van secrets (oude locatie)
+    3. In omgevingsvariabelen
+    """
+    # Probeer Streamlit secrets
     try:
         import streamlit as st
-        if "GEMINI_API_KEY" in st.secrets:
+
+        # 1. Nieuwe locatie: onder connections.aurelius
+        try:
+            return st.secrets["connections"]["aurelius"]["GEMINI_API_KEY"]
+        except (KeyError, Exception):
+            pass
+
+        # 2. Oude locatie: op de root
+        try:
             return st.secrets["GEMINI_API_KEY"]
+        except (KeyError, Exception):
+            pass
     except Exception:
         pass
+
+    # 3. Fallback: omgevingsvariabele
     return os.environ.get("GEMINI_API_KEY", "")
 
 
@@ -63,30 +82,33 @@ def chat_gemini(model, messages, system_prompt=None, temperature=0.8):
         return "⚠️ Geen Gemini API-sleutel gevonden. Zet GEMINI_API_KEY in secrets."
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
+        from google import genai
+        from google.genai import types
 
-        generation_config = genai.types.GenerationConfig(
+        client = genai.Client(api_key=api_key)
+
+        # Bouw de inhoud op voor de nieuwe SDK
+        contents = []
+        for m in messages:
+            rol = "user" if m["role"] == "user" else "model"
+            contents.append(
+                types.Content(
+                    role=rol,
+                    parts=[types.Part(text=m["content"])]
+                )
+            )
+
+        config = types.GenerateContentConfig(
             temperature=temperature,
-        )
-
-        model_instance = genai.GenerativeModel(
-            model_name=model,
             system_instruction=system_prompt,
-            generation_config=generation_config,
         )
 
-        # Bouw de geschiedenis op
-        history = []
-        for m in messages[:-1]:
-            history.append({
-                "role": "user" if m["role"] == "user" else "model",
-                "parts": [m["content"]],
-            })
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
 
-        chat_session = model_instance.start_chat(history=history)
-        laatste = messages[-1]["content"] if messages else ""
-        response = chat_session.send_message(laatste)
         return response.text
 
     except Exception as e:
