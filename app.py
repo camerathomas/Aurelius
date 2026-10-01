@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Eigen modules
 from filosofen import FILOSOFEN, STANDAARD_PANTHEON
-from coach import bouw_coach_prompt, kies_filosoof
+from coach import bouw_coach_prompt, kies_filosoof, chat
 from profiel import laad_profiel, bewaar_profiel
 
 # ============================================================
@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# Sidebar — instellingen
+# Sidebar
 # ============================================================
 st.sidebar.title("🏛️ Aurelius")
 st.sidebar.caption("Jouw filosofische metgezel")
@@ -43,9 +43,31 @@ modus = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
+st.sidebar.subheader("🔌 Model")
+
+provider = st.sidebar.selectbox(
+    "Provider",
+    ["Gemini", "Ollama"],
+    help="Gemini werkt online (gratis tier). Ollama werkt lokaal."
+)
+
+if provider == "Gemini":
+    model_naam = st.sidebar.selectbox(
+        "Model",
+        ["gemini-2.0-flash", "gemini-2.5-pro"],
+        help="Flash is snel en gratis. Pro is slimmer maar langzamer."
+    )
+    provider_key = "gemini"
+else:
+    model_naam = st.sidebar.selectbox(
+        "Model",
+        ["llama3.2:latest", "qwen3:4b-q4_K_M"],
+    )
+    provider_key = "ollama"
+
+st.sidebar.markdown("---")
 st.sidebar.subheader("🎭 Pantheon")
 
-# Welke filosofen zijn actief?
 pantheon = st.sidebar.multiselect(
     "Kies je filosofen",
     options=list(FILOSOFEN.keys()),
@@ -70,20 +92,18 @@ if "geschiedenis" not in st.session_state:
     st.session_state.geschiedenis = []
 if "profiel" not in st.session_state:
     st.session_state.profiel = laad_profiel(gebruiker_id)
-if "actief" not in st.session_state:
-    st.session_state.actief = False
+
+# Als de gebruiker wisselt, herlaad het profiel
+if st.session_state.get("huidige_gebruiker") != gebruiker_id:
+    st.session_state.profiel = laad_profiel(gebruiker_id)
+    st.session_state.huidige_gebruiker = gebruiker_id
+    st.session_state.geschiedenis = []
 
 # ============================================================
 # Hoofdinterface
 # ============================================================
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
-
-# Status
-if st.session_state.actief:
-    st.info(f"🟢 Gesprek actief · modus: {modus}")
-else:
-    st.info("Typ hieronder om een gesprek te beginnen.")
 
 # Gesprek renderen
 gesprek_container = st.container()
@@ -117,9 +137,8 @@ if gebruiker_input:
     toon_bericht("Jij", gebruiker_input, "🧑", tijd)
 
     # Kies een filosoof
-    if modus == "Filosofie":
-        # Gebruiker kiest via sidebar (later uitwerken)
-        filosoof_naam = pantheon[0] if pantheon else STANDAARD_PANTHEON[0]
+    if modus == "Filosofie" and pantheon:
+        filosoof_naam = pantheon[0]
     else:
         filosoof_naam = kies_filosoof(
             st.session_state.profiel,
@@ -129,21 +148,30 @@ if gebruiker_input:
 
     filosoof = FILOSOFEN[filosoof_naam]
 
-    # Bouw de prompt
+    # Bouw de system prompt
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
         profiel=st.session_state.profiel,
         modus=modus
     )
 
+    # Bouw de messages (alleen de laatste max_historie berichten)
+    context = st.session_state.geschiedenis[-max_historie:]
+    messages = []
+    for b in context[:-1]:  # laatste bericht is de huidige input
+        rol = "assistant" if b["naam"] != "Jij" else "user"
+        messages.append({"role": rol, "content": b["tekst"]})
+    messages.append({"role": "user", "content": gebruiker_input})
+
     # Roep het model aan
-    from coach import chat
-    antwoord = chat(
-        model="llama3.2:latest",  # standaard coach-model
-        messages=[{"role": "user", "content": gebruiker_input}],
-        system_prompt=system_prompt,
-        temperature=temperature
-    )
+    with st.spinner(f"{filosoof['naam']} denkt na..."):
+        antwoord = chat(
+            model=model_naam,
+            messages=messages,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            provider=provider_key
+        )
 
     # Voeg antwoord toe
     tijd = datetime.now().strftime("%H:%M")
