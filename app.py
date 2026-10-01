@@ -9,7 +9,14 @@ from datetime import datetime
 # Eigen modules
 from filosofen import FILOSOFEN, STANDAARD_PANTHEON
 from coach import bouw_coach_prompt, kies_filosoof, chat
-from profiel import laad_profiel, bewaar_profiel
+from opslag import (
+    initialiseer,
+    laad_profiel,
+    bewaar_profiel,
+    bewaar_bericht,
+    laad_gesprek,
+    wis_gesprek,
+)
 
 # ============================================================
 # Configuratie
@@ -19,6 +26,9 @@ st.set_page_config(
     page_icon="🏛️",
     layout="centered"
 )
+
+# Initialiseer de database (maakt tabellen aan als ze nog niet bestaan)
+initialiseer()
 
 # ============================================================
 # Incheck-vragen
@@ -74,7 +84,7 @@ st.sidebar.caption("Jouw filosofische metgezel")
 gebruiker_id = st.sidebar.text_input(
     "Gebruikersnaam",
     value="remco",
-    help="Alles wordt lokaal opgeslagen onder deze naam."
+    help="Alles wordt opgeslagen onder deze naam."
 )
 
 st.sidebar.markdown("---")
@@ -120,31 +130,52 @@ max_historie = st.sidebar.slider(
     help="Hoeveel eerdere berichten de modellen zien."
 )
 
-# ============================================================
-# Sessie-state
-# ============================================================
-if "geschiedenis" not in st.session_state:
+st.sidebar.markdown("---")
+st.sidebar.subheader("🗑️ Archief")
+if st.sidebar.button("Wis alle gesprekken"):
+    wis_gesprek(gebruiker_id)
     st.session_state.geschiedenis = []
-if "profiel" not in st.session_state:
-    st.session_state.profiel = laad_profiel(gebruiker_id)
+    st.sidebar.success("Alle gesprekken gewist.")
+
+# ============================================================
+# Sessie-state (voor UI-state, niet voor data)
+# ============================================================
 if "incheck" not in st.session_state:
     st.session_state.incheck = {}
 if "incheck_stap" not in st.session_state:
     st.session_state.incheck_stap = 0
 if "incheck_afgerond" not in st.session_state:
     st.session_state.incheck_afgerond = False
-if "sorteer_posities" not in st.session_state:
-    st.session_state.sorteer_posities = {}
+if "geschiedenis" not in st.session_state:
+    st.session_state.geschiedenis = []
+if "profiel" not in st.session_state:
+    st.session_state.profiel = laad_profiel(gebruiker_id)
 
 # Als de gebruiker wisselt, herlaad het profiel en reset de incheck
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.profiel = laad_profiel(gebruiker_id)
     st.session_state.huidige_gebruiker = gebruiker_id
-    st.session_state.geschiedenis = []
-    st.session_state.incheck = {}
-    st.session_state.incheck_stap = 0
-    st.session_state.incheck_afgerond = False
-    st.session_state.sorteer_posities = {}
+
+    # Laad het gesprek uit de database
+    opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
+    st.session_state.geschiedenis = [
+        {
+            "naam": b["filosoof"] if b["rol"] == "assistant" else "Jij",
+            "tekst": b["tekst"],
+            "icoon": FILOSOFEN.get(b["filosoof"], {}).get("emoji", "🏛️") if b["rol"] == "assistant" else "🧑",
+            "tijd": str(b["tijd"])[11:16] if b.get("tijd") else "",
+        }
+        for b in opgeslagen
+    ]
+
+    # Als er al gesprekken zijn, is de incheck al gedaan
+    if st.session_state.geschiedenis:
+        st.session_state.incheck_afgerond = True
+        st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
+    else:
+        st.session_state.incheck = {}
+        st.session_state.incheck_stap = 0
+        st.session_state.incheck_afgerond = False
 
 # ============================================================
 # Hoofdinterface — titel
@@ -261,7 +292,7 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
-            bewaar_profiel(gebruiker_id, st.session_state.profiel)
+            bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
     st.stop()  # Stop hier — toon de chat niet
@@ -320,6 +351,7 @@ if not st.session_state.geschiedenis:
         "icoon": "🏛️",
         "tijd": datetime.now().strftime("%H:%M"),
     })
+    bewaar_bericht(gebruiker_id, "Coach", "assistant", opening)
     toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
 
 # ============================================================
@@ -336,6 +368,7 @@ if gebruiker_input:
         "icoon": "🧑",
         "tijd": tijd,
     })
+    bewaar_bericht(gebruiker_id, "Jij", "user", gebruiker_input)
     toon_bericht("Jij", gebruiker_input, "🧑", tijd)
 
     # Kies een filosoof
@@ -383,7 +416,8 @@ if gebruiker_input:
         "icoon": filosoof["emoji"],
         "tijd": tijd,
     })
+    bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", antwoord)
     toon_bericht(filosoof["naam"], antwoord, filosoof["emoji"], tijd)
 
     # Bewaar profiel
-    bewaar_profiel(gebruiker_id, st.session_state.profiel)
+    bewaar_profiel(st.session_state.profiel)
