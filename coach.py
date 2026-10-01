@@ -128,7 +128,8 @@ def chat(model, messages, system_prompt=None, temperature=0.8, provider="ollama"
 # ============================================================
 # Prompt bouwen
 # ============================================================
-def bouw_coach_prompt(filosoof, profiel, modus):
+
+def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
     """Bouwt de system prompt voor de coach."""
     basis = (
         "Je bent een filosofische coach. Je luistert meer dan je spreekt. "
@@ -153,8 +154,17 @@ def bouw_coach_prompt(filosoof, profiel, modus):
         f"Thema's van de gebruiker: {', '.join(profiel.get('themas', [])) or 'onbekend'}"
     )
 
-    return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}"
+    fase_blok = ""
+    if fase:
+        fase_blok = f"\n\n[FASE]\nJe zit nu in de fase: {fase}."
+        if vragen:
+            fase_blok += (
+                "\nHier zijn vragen die bij deze fase passen:\n"
+                + "\n".join(f"- {v}" for v in vragen)
+                + "\n\nGebruik deze vragen als richtlijn, maar pas ze aan op wat de gebruiker zegt."
+            )
 
+    return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}"
 
 # ============================================================
 # Filosoof kiezen
