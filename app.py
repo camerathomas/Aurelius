@@ -82,7 +82,7 @@ provider = st.sidebar.selectbox(
 if provider == "Gemini":
     model_naam = st.sidebar.selectbox(
         "Model",
-        ["gemini-2.0-flash", "gemini-2.5-pro"],
+        ["gemini-3.5-flash-lite"],
         help="Flash is snel en gratis. Pro is slimmer maar langzamer."
     )
     provider_key = "gemini"
