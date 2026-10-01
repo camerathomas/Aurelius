@@ -9,14 +9,6 @@ from datetime import datetime
 # Eigen modules
 from filosofen import FILOSOFEN, STANDAARD_PANTHEON
 from coach import bouw_coach_prompt, kies_filosoof, chat
-from opslag import (
-    initialiseer,
-    laad_profiel,
-    bewaar_profiel,
-    bewaar_bericht,
-    laad_gesprek,
-    wis_gesprek,
-)
 
 # ============================================================
 # Configuratie
@@ -27,8 +19,63 @@ st.set_page_config(
     layout="centered"
 )
 
-# Initialiseer de database (maakt tabellen aan als ze nog niet bestaan)
-initialiseer()
+# ============================================================
+# Database — met robuuste foutafhandeling
+# ============================================================
+def check_database():
+    """Controleert of de database-configuratie klopt. Geeft (True, None) of (False, foutmelding)."""
+    try:
+        secrets = st.secrets["connections"]["aurelius"]
+    except KeyError:
+        return False, (
+            "**Database-configuratie niet gevonden.**\n\n"
+            "Ga naar **Settings → Secrets** in Streamlit Cloud en zorg dat er staat:\n"
+            "```toml\n"
+            "[connections.aurelius]\n"
+            'url = "libsql://..."\n'
+            'auth_token = "..."\n'
+            "```\n\n"
+            "**Belangrijk:** klik daarna op **Reboot** in het ⋮-menu van je app. "
+            "Secrets worden alleen bij het opstarten ingelezen."
+        )
+
+    if "url" not in secrets:
+        return False, "De sleutel `url` ontbreekt in de secrets-sectie `connections.aurelius`."
+
+    if "auth_token" not in secrets:
+        return False, "De sleutel `auth_token` ontbreekt in de secrets-sectie `connections.aurelius`."
+
+    return True, None
+
+
+# Check de database-configuratie
+db_ok, db_fout = check_database()
+
+if not db_ok:
+    st.error("⚠️ **Database niet beschikbaar**")
+    st.markdown(db_fout)
+    st.info(
+        "💡 **Je kunt de app niet gebruiken zonder database.** "
+        "Los de configuratie op en herstart de app."
+    )
+    st.stop()
+
+# Importeer de opslag-module pas als de database-configuratie klopt
+from opslag import (
+    initialiseer,
+    laad_profiel,
+    bewaar_profiel,
+    bewaar_bericht,
+    laad_gesprek,
+    wis_gesprek,
+)
+
+# Initialiseer de database
+try:
+    initialiseer()
+except Exception as e:
+    st.error(f"⚠️ **Database-fout bij initialisatie:** {e}")
+    st.stop()
 
 # ============================================================
 # Incheck-vragen
@@ -133,9 +180,16 @@ max_historie = st.sidebar.slider(
 st.sidebar.markdown("---")
 st.sidebar.subheader("🗑️ Archief")
 if st.sidebar.button("Wis alle gesprekken"):
-    wis_gesprek(gebruiker_id)
-    st.session_state.geschiedenis = []
-    st.sidebar.success("Alle gesprekken gewist.")
+    try:
+        wis_gesprek(gebruiker_id)
+        st.session_state.geschiedenis = []
+        st.session_state.incheck_afgerond = False
+        st.session_state.incheck = {}
+        st.session_state.incheck_stap = 0
+        st.sidebar.success("Alle gesprekken gewist.")
+        st.rerun()
+    except Exception as e:
+        st.sidebar.error(f"Fout bij wissen: {e}")
 
 # ============================================================
 # Sessie-state (voor UI-state, niet voor data)
@@ -149,33 +203,41 @@ if "incheck_afgerond" not in st.session_state:
 if "geschiedenis" not in st.session_state:
     st.session_state.geschiedenis = []
 if "profiel" not in st.session_state:
-    st.session_state.profiel = laad_profiel(gebruiker_id)
+    try:
+        st.session_state.profiel = laad_profiel(gebruiker_id)
+    except Exception as e:
+        st.error(f"⚠️ Kon profiel niet laden: {e}")
+        st.stop()
 
 # Als de gebruiker wisselt, herlaad het profiel en reset de incheck
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
-    st.session_state.profiel = laad_profiel(gebruiker_id)
-    st.session_state.huidige_gebruiker = gebruiker_id
+    try:
+        st.session_state.profiel = laad_profiel(gebruiker_id)
+        st.session_state.huidige_gebruiker = gebruiker_id
 
-    # Laad het gesprek uit de database
-    opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
-    st.session_state.geschiedenis = [
-        {
-            "naam": b["filosoof"] if b["rol"] == "assistant" else "Jij",
-            "tekst": b["tekst"],
-            "icoon": FILOSOFEN.get(b["filosoof"], {}).get("emoji", "🏛️") if b["rol"] == "assistant" else "🧑",
-            "tijd": str(b["tijd"])[11:16] if b.get("tijd") else "",
-        }
-        for b in opgeslagen
-    ]
+        # Laad het gesprek uit de database
+        opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
+        st.session_state.geschiedenis = [
+            {
+                "naam": b["filosoof"] if b["rol"] == "assistant" else "Jij",
+                "tekst": b["tekst"],
+                "icoon": FILOSOFEN.get(b["filosoof"], {}).get("emoji", "🏛️") if b["rol"] == "assistant" else "🧑",
+                "tijd": str(b["tijd"])[11:16] if b.get("tijd") else "",
+            }
+            for b in opgeslagen
+        ]
 
-    # Als er al gesprekken zijn, is de incheck al gedaan
-    if st.session_state.geschiedenis:
-        st.session_state.incheck_afgerond = True
-        st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
-    else:
-        st.session_state.incheck = {}
-        st.session_state.incheck_stap = 0
-        st.session_state.incheck_afgerond = False
+        # Als er al gesprekken zijn, is de incheck al gedaan
+        if st.session_state.geschiedenis:
+            st.session_state.incheck_afgerond = True
+            st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
+        else:
+            st.session_state.incheck = {}
+            st.session_state.incheck_stap = 0
+            st.session_state.incheck_afgerond = False
+    except Exception as e:
+        st.error(f"⚠️ Kon gegevens niet laden: {e}")
+        st.stop()
 
 # ============================================================
 # Hoofdinterface — titel
@@ -194,7 +256,6 @@ if not st.session_state.incheck_afgerond:
     stap = st.session_state.incheck_stap
     totaal = len(INCHECK_VRAGEN)
 
-    # Voortgang
     voortgang = stap / totaal
     if stap < totaal:
         st.progress(voortgang, text=f"Vraag {stap + 1} van {totaal}")
@@ -205,7 +266,6 @@ if not st.session_state.incheck_afgerond:
         vraag = INCHECK_VRAGEN[stap]
         st.markdown(f"**{vraag['vraag']}**")
 
-        # --- Type: tekst ---
         if vraag["type"] == "tekst":
             antwoord = st.text_input(
                 "Antwoord",
@@ -221,7 +281,6 @@ if not st.session_state.incheck_afgerond:
                 else:
                     st.warning("Vul iets in om verder te gaan.")
 
-        # --- Type: slider ---
         elif vraag["type"] == "slider":
             if vraag.get("toelichting"):
                 st.caption(vraag["toelichting"])
@@ -238,7 +297,6 @@ if not st.session_state.incheck_afgerond:
                 st.session_state.incheck_stap += 1
                 st.rerun()
 
-        # --- Type: keuze ---
         elif vraag["type"] == "keuze":
             antwoord = st.radio(
                 "Keuze",
@@ -251,7 +309,6 @@ if not st.session_state.incheck_afgerond:
                 st.session_state.incheck_stap += 1
                 st.rerun()
 
-        # --- Type: sorteren ---
         elif vraag["type"] == "sorteren":
             opties = vraag["opties"]
             st.markdown("**1e plaats** (belangrijkst)")
@@ -272,7 +329,6 @@ if not st.session_state.incheck_afgerond:
                 st.rerun()
 
     else:
-        # Incheck klaar — toon samenvatting
         st.markdown("### ✅ Klaar")
         st.markdown("Dit is wat ik heb onthouden:")
 
@@ -292,16 +348,18 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
-            bewaar_profiel(st.session_state.profiel)
+            try:
+                bewaar_profiel(st.session_state.profiel)
+            except Exception as e:
+                st.warning(f"Profiel kon niet worden opgeslagen: {e}")
             st.rerun()
 
-    st.stop()  # Stop hier — toon de chat niet
+    st.stop()
 
 # ============================================================
 # Gesprek — na de incheck
 # ============================================================
 
-# Toon de incheck-context
 incheck = st.session_state.get("incheck", {})
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
@@ -313,7 +371,6 @@ if incheck:
             st.markdown(f"- **Volgorde**: {' → '.join(volgorde)}")
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
-# Gesprek renderen
 gesprek_container = st.container()
 
 def toon_bericht(naam, tekst, icoon, tijd=None):
@@ -351,7 +408,10 @@ if not st.session_state.geschiedenis:
         "icoon": "🏛️",
         "tijd": datetime.now().strftime("%H:%M"),
     })
-    bewaar_bericht(gebruiker_id, "Coach", "assistant", opening)
+    try:
+        bewaar_bericht(gebruiker_id, "Coach", "assistant", opening)
+    except Exception:
+        pass
     toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
 
 # ============================================================
@@ -360,7 +420,6 @@ if not st.session_state.geschiedenis:
 gebruiker_input = st.chat_input("Waar wil je het over hebben?")
 
 if gebruiker_input:
-    # Voeg gebruikersbericht toe
     tijd = datetime.now().strftime("%H:%M")
     st.session_state.geschiedenis.append({
         "naam": "Jij",
@@ -368,10 +427,12 @@ if gebruiker_input:
         "icoon": "🧑",
         "tijd": tijd,
     })
-    bewaar_bericht(gebruiker_id, "Jij", "user", gebruiker_input)
+    try:
+        bewaar_bericht(gebruiker_id, "Jij", "user", gebruiker_input)
+    except Exception:
+        pass
     toon_bericht("Jij", gebruiker_input, "🧑", tijd)
 
-    # Kies een filosoof
     if pantheon:
         filosoof_naam = kies_filosoof(
             st.session_state.profiel,
@@ -383,14 +444,12 @@ if gebruiker_input:
 
     filosoof = FILOSOFEN[filosoof_naam]
 
-    # Bouw de system prompt
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
         profiel=st.session_state.profiel,
         modus="Coach"
     )
 
-    # Bouw de messages
     context = st.session_state.geschiedenis[-max_historie:]
     messages = []
     for b in context[:-1]:
@@ -398,7 +457,6 @@ if gebruiker_input:
         messages.append({"role": rol, "content": b["tekst"]})
     messages.append({"role": "user", "content": gebruiker_input})
 
-    # Roep het model aan
     with st.spinner(f"{filosoof['naam']} denkt na..."):
         antwoord = chat(
             model=model_naam,
@@ -408,7 +466,6 @@ if gebruiker_input:
             provider=provider_key
         )
 
-    # Voeg antwoord toe
     tijd = datetime.now().strftime("%H:%M")
     st.session_state.geschiedenis.append({
         "naam": filosoof["naam"],
@@ -416,8 +473,13 @@ if gebruiker_input:
         "icoon": filosoof["emoji"],
         "tijd": tijd,
     })
-    bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", antwoord)
+    try:
+        bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", antwoord)
+    except Exception:
+        pass
     toon_bericht(filosoof["naam"], antwoord, filosoof["emoji"], tijd)
 
-    # Bewaar profiel
-    bewaar_profiel(st.session_state.profiel)
+    try:
+        bewaar_profiel(st.session_state.profiel)
+    except Exception:
+        pass
