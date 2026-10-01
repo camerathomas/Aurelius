@@ -147,7 +147,6 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
         "- Reageer op de gebruiker, niet op jezelf."
     )
 
-    # Haal het doel op uit de incheck
     incheck = profiel.get("laatste_incheck", {})
     doel = incheck.get("doel", "een goed gesprek")
 
@@ -155,7 +154,7 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
         f"[CONTEXT]\n"
         f"Modus: {modus}\n"
         f"Doel van de gebruiker: {doel}\n"
-        f"Thema's van de gebruiker: {', '.join(profiel.get('themas', [])) or 'onbekend'}"
+        f"Thema's: {', '.join(profiel.get('themas', [])) or 'onbekend'}"
     )
 
     fase_blok = ""
@@ -172,12 +171,18 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
         f"\n\n[DOEL]\n"
         f"De gebruiker wil: {doel}\n"
         f"Houd dit doel in gedachten. Kom er af en toe op terug, "
-        f"maar niet vaker dan elke 3 minuten. Vraag bijvoorbeeld: "
-        f"'Je zei aan het begin dat je {doel.lower()} wilde. Hoe sta je daar nu in?'"
+        f"maar niet vaker dan elke 3 minuten."
     )
 
-    return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}{doel_blok}"
+    if fase in ["integreren", "afsluiten"]:
+        fase_blok += (
+            "\n\n[AFSLUITING]\n"
+            "De tijd is bijna op. Rond het gesprek af. "
+            "Vat kort samen wat er besproken is. "
+            "Bedank de gebruiker. Zeg: 'Tot volgende keer.'"
+        )
 
+    return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}{doel_blok}"
 
 # ============================================================
 # Filosoof kiezen
