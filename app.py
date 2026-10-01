@@ -31,18 +31,25 @@ INCHECK_VRAGEN = [
         "placeholder": "Bijvoorbeeld: druk, moe, rustig, gespannen...",
     },
     {
-        "sleutel": "score",
-        "vraag": "Op een schaal van 1-10, waar sta je?",
+        "sleutel": "overzicht",
+        "vraag": "Heb je op dit moment goed overzicht over je leven?",
         "type": "slider",
         "min": 1,
         "max": 10,
         "default": 5,
+        "toelichting": "1 = geen overzicht, 10 = volledig overzicht",
     },
     {
         "sleutel": "intentie",
         "vraag": "Wat wil je vandaag?",
         "type": "keuze",
         "opties": ["Even praten", "Iets bespreken", "Iets onderzoeken", "Iets vieren"],
+    },
+    {
+        "sleutel": "volgorde",
+        "vraag": "Zet deze vier op volgorde van belangrijkheid voor jou.",
+        "type": "sorteren",
+        "opties": ["Respect", "Vertrouwen", "Verbinding", "Analyse"],
     },
     {
         "sleutel": "duur",
@@ -82,8 +89,8 @@ provider = st.sidebar.selectbox(
 if provider == "Gemini":
     model_naam = st.sidebar.selectbox(
         "Model",
-        ["gemini-3.5-flash-lite"],
-        help="Flash is snel en gratis. Pro is slimmer maar langzamer."
+        ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
+        help="Lite modellen hebben 500 gratis requests per dag."
     )
     provider_key = "gemini"
 else:
@@ -101,7 +108,7 @@ pantheon = st.sidebar.multiselect(
     options=list(FILOSOFEN.keys()),
     default=STANDAARD_PANTHEON,
     format_func=lambda x: f"{FILOSOFEN[x]['emoji']} {FILOSOFEN[x]['naam']}",
-    help="Standaard staan er 6 filosofen aan. Je kunt er meer of minder kiezen."
+    help="Standaard staan er 6 filosofen aan."
 )
 
 st.sidebar.markdown("---")
@@ -126,6 +133,8 @@ if "incheck_stap" not in st.session_state:
     st.session_state.incheck_stap = 0
 if "incheck_afgerond" not in st.session_state:
     st.session_state.incheck_afgerond = False
+if "sorteer_posities" not in st.session_state:
+    st.session_state.sorteer_posities = {}
 
 # Als de gebruiker wisselt, herlaad het profiel en reset de incheck
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
@@ -135,6 +144,7 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.incheck = {}
     st.session_state.incheck_stap = 0
     st.session_state.incheck_afgerond = False
+    st.session_state.sorteer_posities = {}
 
 # ============================================================
 # Hoofdinterface — titel
@@ -151,15 +161,20 @@ if not st.session_state.incheck_afgerond:
     st.markdown("Even een paar vragen voordat we beginnen.")
 
     stap = st.session_state.incheck_stap
+    totaal = len(INCHECK_VRAGEN)
 
     # Voortgang
-    voortgang = stap / len(INCHECK_VRAGEN)
-    st.progress(voortgang, text=f"Vraag {stap + 1} van {len(INCHECK_VRAGEN)}" if stap < len(INCHECK_VRAGEN) else "Klaar")
+    voortgang = stap / totaal
+    if stap < totaal:
+        st.progress(voortgang, text=f"Vraag {stap + 1} van {totaal}")
+    else:
+        st.progress(1.0, text="Klaar")
 
-    if stap < len(INCHECK_VRAGEN):
+    if stap < totaal:
         vraag = INCHECK_VRAGEN[stap]
         st.markdown(f"**{vraag['vraag']}**")
 
+        # --- Type: tekst ---
         if vraag["type"] == "tekst":
             antwoord = st.text_input(
                 "Antwoord",
@@ -175,7 +190,10 @@ if not st.session_state.incheck_afgerond:
                 else:
                     st.warning("Vul iets in om verder te gaan.")
 
+        # --- Type: slider ---
         elif vraag["type"] == "slider":
+            if vraag.get("toelichting"):
+                st.caption(vraag["toelichting"])
             antwoord = st.slider(
                 "Score",
                 vraag["min"],
@@ -189,6 +207,7 @@ if not st.session_state.incheck_afgerond:
                 st.session_state.incheck_stap += 1
                 st.rerun()
 
+        # --- Type: keuze ---
         elif vraag["type"] == "keuze":
             antwoord = st.radio(
                 "Keuze",
@@ -201,17 +220,47 @@ if not st.session_state.incheck_afgerond:
                 st.session_state.incheck_stap += 1
                 st.rerun()
 
+        # --- Type: sorteren ---
+        elif vraag["type"] == "sorteren":
+            opties = vraag["opties"]
+            st.markdown("**1e plaats** (belangrijkst)")
+            pos1 = st.selectbox("1e", opties, key="sort_pos1", label_visibility="collapsed")
+            st.markdown("**2e plaats**")
+            opties_2 = [o for o in opties if o != pos1]
+            pos2 = st.selectbox("2e", opties_2, key="sort_pos2", label_visibility="collapsed")
+            st.markdown("**3e plaats**")
+            opties_3 = [o for o in opties_2 if o != pos2]
+            pos3 = st.selectbox("3e", opties_3, key="sort_pos3", label_visibility="collapsed")
+            pos4 = [o for o in opties_3 if o != pos3][0]
+            st.markdown(f"**4e plaats**: {pos4}")
+
+            if st.button("Volgende ➡️"):
+                volgorde = [pos1, pos2, pos3, pos4]
+                st.session_state.incheck["volgorde"] = volgorde
+                st.session_state.incheck_stap += 1
+                st.rerun()
+
     else:
-        # Incheck is klaar — toon samenvatting
+        # Incheck klaar — toon samenvatting
         st.markdown("### ✅ Klaar")
         st.markdown("Dit is wat ik heb onthouden:")
-        for sleutel, waarde in st.session_state.incheck.items():
-            st.markdown(f"- **{sleutel.capitalize()}**: {waarde}")
+
+        incheck = st.session_state.incheck
+
+        st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
+        st.markdown(f"- **Overzicht**: {incheck.get('overzicht', '—')}/10")
+        st.markdown(f"- **Intentie**: {incheck.get('intentie', '—')}")
+        volgorde = incheck.get("volgorde", [])
+        if volgorde:
+            st.markdown(f"- **Jouw volgorde**: {' → '.join(volgorde)}")
+        st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
+        st.markdown(f"- **Modus**: {incheck.get('modus', '—')}")
 
         if st.button("🚀 Start gesprek", type="primary"):
             st.session_state.incheck_afgerond = True
-            st.session_state.profiel["laatste_incheck"] = st.session_state.incheck
-            st.session_state.profiel["themas"] = [st.session_state.incheck.get("emotie", "")]
+            st.session_state.profiel["laatste_incheck"] = incheck
+            st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
+            st.session_state.profiel["waarde_volgorde"] = volgorde
             bewaar_profiel(gebruiker_id, st.session_state.profiel)
             st.rerun()
 
@@ -226,8 +275,11 @@ incheck = st.session_state.get("incheck", {})
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
-        st.markdown(f"- **Score**: {incheck.get('score', '—')}/10")
+        st.markdown(f"- **Overzicht**: {incheck.get('overzicht', '—')}/10")
         st.markdown(f"- **Intentie**: {incheck.get('intentie', '—')}")
+        volgorde = incheck.get("volgorde", [])
+        if volgorde:
+            st.markdown(f"- **Volgorde**: {' → '.join(volgorde)}")
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
 # Gesprek renderen
@@ -249,14 +301,17 @@ for b in st.session_state.geschiedenis:
 # Eerste coach-beurt na de incheck
 # ============================================================
 if not st.session_state.geschiedenis:
-    # De coach opent het gesprek op basis van de incheck
     emotie = incheck.get("emotie", "")
+    overzicht = incheck.get("overzicht", 5)
     intentie = incheck.get("intentie", "")
-    score = incheck.get("score", 5)
+    volgorde = incheck.get("volgorde", [])
+
+    eerste_waarde = volgorde[0] if volgorde else "Respect"
 
     opening = (
-        f"Je zegt: {emotie}. Je gaf een {score}/10. "
-        f"En je wilt: {intentie.lower()}."
+        f"Je zegt: {emotie}. Je gaf een {overzicht}/10 op overzicht. "
+        f"En je wilt: {intentie.lower()}.\n\n"
+        f"Je zet **{eerste_waarde}** bovenaan. Laten we daar beginnen."
     )
 
     st.session_state.geschiedenis.append({
