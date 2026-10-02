@@ -8,7 +8,11 @@ import time
 from datetime import datetime
 
 # Eigen modules
-from filosofen import FILOSOFEN, STANDAARD_PANTHEON
+from filosofen import (
+    FILOSOFEN,
+    STANDAARD_PANTHEON,
+    beschikbare_filosofen,
+)
 from coach import bouw_coach_prompt, kies_filosoof, chat
 
 # ============================================================
@@ -58,7 +62,7 @@ except Exception as e:
     st.stop()
 
 # ============================================================
-# Fasen (incheck is GEEN fase — die is al geweest)
+# Fasen
 # ============================================================
 FASE_PERCENTAGES = {
     "opening":    (0.00, 0.10),
@@ -83,15 +87,11 @@ VRAGEN_PER_FASE = {
 # ============================================================
 # Tijdsysteem
 # ============================================================
-PAUZE_DREMPEL = 90   # seconden — tijd tussen berichten die meetelt
-BASIS_MARGE = 30     # seconden per beurt als er een lange pauze was
+PAUZE_DREMPEL = 90
+BASIS_MARGE = 30
+
 
 def update_sessie_tijd(profiel):
-    """Werkt de sessietijd bij.
-
-    - Als de pauze korter is dan PAUZE_DREMPEL: volledige tijd meetellen.
-    - Anders: alleen BASIS_MARGE meetellen.
-    """
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
     verschil = nu - laatste
@@ -163,6 +163,11 @@ st.sidebar.caption("Jouw filosofische metgezel")
 
 gebruiker_id = st.sidebar.text_input("Gebruikersnaam", value="remco")
 
+# --- Level en voortgang ---
+level = st.session_state.get("profiel", {}).get("level", 1)
+st.sidebar.markdown(f"### 🎯 Level {level}")
+
+# --- Model ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔌 Model")
 
@@ -175,21 +180,27 @@ else:
     model_naam = st.sidebar.selectbox("Model", ["llama3.2:latest", "qwen3:4b-q4_K_M"])
     provider_key = "ollama"
 
+# --- Pantheon (met level-filter) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎭 Pantheon")
 
+beschikbaar = beschikbare_filosofen(level)
+
 pantheon = st.sidebar.multiselect(
     "Kies je filosofen",
-    options=list(FILOSOFEN.keys()),
-    default=STANDAARD_PANTHEON,
+    options=beschikbaar,
+    default=[f for f in STANDAARD_PANTHEON if f in beschikbaar],
     format_func=lambda x: f"{FILOSOFEN[x]['emoji']} {FILOSOFEN[x]['naam']}",
+    help=f"Level {level} — er komen meer filosofen bij als je groeit."
 )
 
+# --- Parameters ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔧 Parameters")
 
 max_historie = st.sidebar.slider("Max. berichten in context", 4, 40, 12, 2)
 
+# --- Archief ---
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Wis alle gesprekken"):
     try:
@@ -217,8 +228,14 @@ if "geschiedenis" not in st.session_state:
 if "profiel" not in st.session_state:
     st.session_state.profiel = laad_profiel(gebruiker_id)
 
+# Zorg dat level bestaat
+if "level" not in st.session_state.profiel:
+    st.session_state.profiel["level"] = 1
+
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.profiel = laad_profiel(gebruiker_id)
+    if "level" not in st.session_state.profiel:
+        st.session_state.profiel["level"] = 1
     st.session_state.huidige_gebruiker = gebruiker_id
     opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
     st.session_state.geschiedenis = [
@@ -324,7 +341,6 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
 
-            # Sessie-tijd initialiseren — begint NU pas
             duur_map = {"Kort (10 min)": 10, "Standaard (25 min)": 25, "Diep (50 min)": 50}
             st.session_state.profiel["sessie_duur"] = duur_map.get(incheck.get("duur"), 25)
             st.session_state.profiel["sessie_start"] = time.time()
@@ -341,16 +357,13 @@ if not st.session_state.incheck_afgerond:
 # ============================================================
 incheck = st.session_state.get("incheck", {})
 
-# Update sessietijd
 st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
 
-# Bepaal fase en tijden
 fase = bepaal_fase(st.session_state.profiel)
 minuten = bereken_sessie_minuten(st.session_state.profiel)
 duur = st.session_state.profiel.get("sessie_duur", 25)
 resterend = max(0, duur - minuten)
 
-# Statusbalk
 st.markdown("---")
 col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
@@ -363,7 +376,6 @@ with col3:
     else:
         st.markdown(f"⏳ **{resterend:.1f}** min")
 
-# Fase-voortgang
 huidige_idx = FASE_VOLGORDE.index(fase) if fase in FASE_VOLGORDE else len(FASE_VOLGORDE)
 fase_weergave = ""
 for i, f in enumerate(FASE_VOLGORDE):
@@ -375,7 +387,6 @@ for i, f in enumerate(FASE_VOLGORDE):
         fase_weergave += f"⬜ {f} "
 st.markdown(f"<small>{fase_weergave}</small>", unsafe_allow_html=True)
 
-# Incheck expander
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
@@ -386,7 +397,6 @@ if incheck:
             st.markdown(f"- **Volgorde**: {' → '.join(volgorde)}")
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
-# Gesprek renderen
 gesprek_container = st.container()
 
 def toon_bericht(naam, tekst, icoon, tijd=None):
@@ -401,9 +411,7 @@ def toon_bericht(naam, tekst, icoon, tijd=None):
 for b in st.session_state.geschiedenis:
     toon_bericht(b["naam"], b["tekst"], b["icoon"], b.get("tijd"))
 
-# ============================================================
 # Eerste coach-beurt
-# ============================================================
 if not st.session_state.geschiedenis:
     emotie = incheck.get("emotie", "")
     overzicht = incheck.get("overzicht", 5)
@@ -427,9 +435,7 @@ if not st.session_state.geschiedenis:
         pass
     toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
 
-# ============================================================
 # Invoer
-# ============================================================
 gebruiker_input = st.chat_input("Waar wil je het over hebben?")
 
 if gebruiker_input:
@@ -443,11 +449,9 @@ if gebruiker_input:
         pass
     toon_bericht("Jij", gebruiker_input, "🧑", tijd)
 
-    # Update sessietijd
     st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
     fase = bepaal_fase(st.session_state.profiel)
 
-    # Kies filosoof
     if pantheon:
         filosoof_naam = kies_filosoof(st.session_state.profiel, pantheon, gebruiker_input)
     else:
@@ -455,7 +459,6 @@ if gebruiker_input:
 
     filosoof = FILOSOFEN[filosoof_naam]
 
-    # Bouw de prompt
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
         profiel=st.session_state.profiel,
@@ -464,12 +467,10 @@ if gebruiker_input:
         vragen=VRAGEN_PER_FASE.get(fase, [])
     )
 
-    # Check of de sessie bijna voorbij is
     einde_check = check_einde_sessie(st.session_state.profiel)
     if einde_check:
         system_prompt += f"\n\n[EINDE SESSIE]\n{einde_check}"
 
-    # Bouw de messages
     context = st.session_state.geschiedenis[-max_historie:]
     messages = []
     for b in context[:-1]:
