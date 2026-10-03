@@ -241,3 +241,14 @@ def beschikbare_filosofen(level):
                 if f in FILOSOFEN:
                     beschikbaar.append(f)
     return list(set(beschikbaar))
+
+# ============================================================
+# Pantheon per level
+# ============================================================
+PANTHEON_PER_LEVEL = {
+    1: ["socrates", "plato", "marcus_aurelius", "boeddha", "maria_montessori"],
+    2: ["aristoteles", "spinoza", "confucius", "lao_tze", "camus"],
+    3: ["nietzsche", "marx", "hannah_arendt", "gandhi", "kierkegaard"],
+    4: ["schopenhauer", "descartes", "leibniz", "willem_van_ockham", "thomas_aquinas"],
+    5: ["erasmus", "pascal", "mary_wollstonecraft", "belle_van_zuylen", "hadewijch"],
+}
