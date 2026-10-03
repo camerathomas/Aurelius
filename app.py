@@ -508,49 +508,61 @@ if not st.session_state.geschiedenis:
     volgorde = incheck.get("volgorde", [])
     eerste_waarde = volgorde[0] if volgorde else "Respect"
 
-    opening_delen = []
-    if openheid:
-        opening_delen.append(f"Je vertelt: *{openheid}*")
-    if emotie:
-        opening_delen.append(f"Je zegt: *{emotie}*")
-    opening_delen.append(f"Je gaf een **{overzicht}/10** op overzicht")
-    if intentie:
-        opening_delen.append(f"Je wilt: **{intentie.lower()}**")
-    if volgorde:
-        staart = f" → {' → '.join(volgorde[1:])}" if len(volgorde) > 1 else ""
-        opening_delen.append(f"Je zet **{eerste_waarde}** bovenaan{staart}")
+    # Bepaal of dit het eerste gesprek is
+    is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
 
-    opening = "  \n".join(opening_delen) + "\n\nLaten we daar beginnen."
-
-    st.session_state.geschiedenis.append({
-        "naam": "Coach", "tekst": opening, "icoon": "🏛️",
-        "tijd": datetime.now().strftime("%H:%M"),
-    })
-    try:
-        bewaar_bericht(gebruiker_id, "Coach", "assistant", opening)
-    except Exception:
-        pass
-    toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
-
-    eerste_vraag_prompt = (
-        f"De gebruiker heeft net de incheck ingevuld:\n"
-        f"- Wat speelt er: {openheid}\n"
-        f"- Emotie: {emotie}\n"
-        f"- Overzicht: {overzicht}/10\n"
-        f"- Intentie: {intentie}\n"
-        f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
-        f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
-        f"Geen herhaling van de incheck, geen samenvatting. "
-        f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
-        f"en die het gesprek opent. Kort, direct, uitnodigend."
+    # Bepaal het pantheon voor deze sessie
+    start_pantheon = bouw_pantheon_voor_sessie(
+        st.session_state.profiel, is_eerste_gesprek
     )
 
-    if pantheon:
-        filosoof_naam = kies_filosoof(
-            st.session_state.profiel, pantheon, openheid or emotie or "begin"
+    # Vergelijk de incheck met de vorige
+    vorige_incheck = st.session_state.profiel.get("vorige_incheck", {})
+    vergelijk = vergelijk_incheck(vorige_incheck, incheck)
+
+    # Bepaal de openingsvraag
+    if is_eerste_gesprek:
+        eerste_vraag_prompt = (
+            f"De gebruiker heeft net de incheck ingevuld:\n"
+            f"- Wat speelt er: {openheid}\n"
+            f"- Emotie: {emotie}\n"
+            f"- Overzicht: {overzicht}/10\n"
+            f"- Intentie: {intentie}\n"
+            f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
+            f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
+            f"Geen herhaling van de incheck, geen samenvatting. "
+            f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
+            f"en die het gesprek opent. Kort, direct, uitnodigend."
         )
     else:
-        filosoof_naam = "aurelius"
+        vorig_overzicht = vorige_incheck.get("overzicht", 5)
+        if vorig_overzicht < 5:
+            eerste_vraag_prompt = (
+                f"Dit is de TWEEDE sessie van de gebruiker. Hij heeft net "
+                f"de app opnieuw geopend.\n\n"
+                f"Vorige sessie gaf hij zijn overzicht een {vorig_overzicht}/10. "
+                f"Dat is laag. Begin het gesprek daarover: vraag hoe het nu is, "
+                f"wat er sinds vorige keer is veranderd, en wat hij vandaag "
+                f"wil bespreken. Kort en direct."
+            )
+        else:
+            eerste_vraag_prompt = (
+                f"Dit is de TWEEDE sessie van de gebruiker. Hij heeft net "
+                f"de app opnieuw geopend.\n\n"
+                f"Stel één openingsvraag: 'Waar wil je het vandaag over hebben?' "
+                f"Of een variant daarop. Kort en direct."
+            )
+
+    # Kies de filosoof: bij de tweede sessie Marcus Aurelius, anders de AI
+    if is_eerste_gesprek:
+        if start_pantheon:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, start_pantheon, openheid or emotie or "begin"
+            )
+        else:
+            filosoof_naam = "marcus_aurelius"
+    else:
+        filosoof_naam = "marcus_aurelius"
 
     filosoof = FILOSOFEN[filosoof_naam]
 
@@ -673,6 +685,44 @@ if gebruiker_input:
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
         )
 
+    # Subtiele terugkoppeling naar de woordvolgorde (alleen na 60% van de sessie)
+    minuten = bereken_sessie_minuten(st.session_state.profiel)
+    duur = st.session_state.profiel.get("sessie_duur", 25)
+    percentage = minuten / duur if duur > 0 else 0
+    mag_terugkoppelen = percentage >= 0.60
+
+    is_eerste_gesprek_huidig = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
+
+    if mag_terugkoppelen and not is_eerste_gesprek_huidig:
+        WOORDEN = ["vertrouwen", "respect", "verbinding", "analyse"]
+        input_lager = gebruiker_input.lower()
+        gevonden = [w for w in WOORDEN if w in input_lager]
+
+        vorige_incheck_huidig = st.session_state.profiel.get("vorige_incheck", {})
+        oude_volgorde = vorige_incheck_huidig.get("volgorde", [])
+        nieuwe_volgorde = st.session_state.profiel.get("waarde_volgorde", [])
+
+        if gevonden:
+            system_prompt += (
+                f"\n\n[WAARDE GENOEMD]\n"
+                f"De gebruiker noemde net: {', '.join(gevonden)}.\n"
+                f"Zijn waardenvolgorde was vorige keer: {' → '.join(oude_volgorde)}\n"
+                f"Deze keer: {' → '.join(nieuwe_volgorde)}\n\n"
+                f"Overweeg of dit een natuurlijk aanknopingspunt is om terug "
+                f"te komen op zijn waarden. Forceer het niet. Maximaal 2 keer "
+                f"per gesprek."
+            )
+        else:
+            system_prompt += (
+                f"\n\n[WAARDEN VAN DE GEBRUIKER]\n"
+                f"Vorige sessie stonden zijn waarden zo:\n"
+                f"{' → '.join(oude_volgorde)}\n\n"
+                f"Overweeg, nu je in het laatste deel van de sessie zit, of "
+                f"een van deze woorden natuurlijk ter sprake komt. Als dat zo is, "
+                f"mag je er subtiel op terugkomen. Forceer het niet. Maximaal "
+                f"2 keer per gesprek."
+            )
+    
     einde_check = check_einde_sessie(st.session_state.profiel)
     if einde_check:
         system_prompt += f"\n\n[EINDE SESSIE]\n{einde_check}"
