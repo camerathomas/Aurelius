@@ -583,7 +583,20 @@ if gebruiker_input:
             fase=fase,
             vragen=VRAGEN_PER_FASE.get(fase, [])
         )
-
+# Socrates: elenchus alleen in het begin
+if filosoof.get("naam") == "Socrates":
+    aantal_socrates = sum(
+        1 for b in st.session_state.geschiedenis
+        if b.get("naam") == "Socrates"
+    )
+    if aantal_socrates >= 3:
+        system_prompt += (
+            "\n\n[ELENCHUS VOORBIJ]\n"
+            "Je hebt de elenchus al gebruikt in de eerste beurten. "
+            "Ga nu over op een gewoon filosofisch gesprek. Blijf "
+            "onderzoekend en vriendelijk, maar herhaal niet steeds "
+            "hetzelfde patroon van instemming-consequentie-tegenstrijdigheid."
+            
         system_prompt += (
             "\n\n[OVERGANGSMOMENT]\n"
             "We zijn halverwege de sessie. Je bent een andere filosoof dan "
