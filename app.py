@@ -922,3 +922,74 @@ if st.session_state.get("evaluatie_afgerond", False):
         if st.button("👋 Afsluiten"):
             st.session_state.einde = True
             st.info("Bedankt voor het gesprek. Tot de volgende keer.")
+
+# ============================================================
+# EINDSCHERM — twee stappen
+# ============================================================
+
+# Stap 1: archiveren
+if (st.session_state.get("evaluatie_afgerond", False)
+        and not st.session_state.get("archief_gevraagd", False)):
+
+    st.markdown("---")
+    st.markdown("## 🏛️ De sessie is afgerond")
+    st.markdown("Wil je deze sessie bewaren in je archief?")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("📁 Ja, archiveer deze sessie", type="primary"):
+            # Sla de sessie op
+            archiveer_sessie(
+                st.session_state.profiel,
+                st.session_state.geschiedenis,
+                st.session_state.evaluatie_rondes,
+                st.session_state.evaluatie_afsluiter,
+            )
+            st.session_state.archief_gevraagd = True
+            st.session_state.archief_opgeslagen = True
+            st.rerun()
+
+    with col2:
+        if st.button("Nee, bewaar niet"):
+            st.session_state.archief_gevraagd = True
+            st.session_state.archief_opgeslagen = False
+            st.rerun()
+
+
+# Stap 2: leeg scherm, dan de drie opties
+if (st.session_state.get("archief_gevraagd", False)
+        and not st.session_state.get("eind_keuze_gemaakt", False)):
+
+    st.markdown("---")
+    st.markdown("## 🕊️")
+    st.caption("Even stilte.")
+
+    st.markdown("---")
+    st.markdown("### Wat wil je nu doen?")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button("☕ Nazit"):
+            st.session_state.nazit_gestart = True
+            st.session_state.eind_keuze_gemaakt = True
+            st.rerun()
+
+    with col2:
+        if st.button("🔄 Nieuwe sessie"):
+            reset_voor_nieuwe_sessie()
+            st.rerun()
+
+    with col3:
+        if st.button("👋 Afsluiten"):
+            st.session_state.einde = True
+            st.session_state.eind_keuze_gemaakt = True
+            st.rerun()
+
+
+# Stap 3: afsluiten
+if st.session_state.get("einde", False):
+    st.markdown("---")
+    st.markdown("## 👋 Bedankt voor het gesprek")
+    st.caption("Tot de volgende keer.")
