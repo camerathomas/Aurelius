@@ -402,11 +402,20 @@ if not st.session_state.incheck_afgerond:
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
         if st.button("🚀 Start gesprek", type="primary"):
+            # Bepaal of dit het eerste gesprek is
+            is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
+
+            # Bewaar de oude incheck als vorige_incheck
+            oude_incheck = st.session_state.profiel.get("laatste_incheck", {})
+            if oude_incheck:
+                st.session_state.profiel["vorige_incheck"] = oude_incheck
+
+            # Sla de nieuwe incheck op
             st.session_state.incheck_afgerond = True
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["openheid"] = incheck.get("openheid", "")
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
-            st.session_state.profiel["waarde_volgorde"] = volgorde
+            st.session_state.profiel["waarde_volgorde"] = incheck.get("volgorde", [])
 
             duur_map = {"Kort (10 min)": 10, "Standaard (25 min)": 25, "Diep (50 min)": 50}
             st.session_state.profiel["sessie_duur"] = duur_map.get(incheck.get("duur"), 25)
@@ -414,6 +423,10 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
 
+            # Markeer dat de gebruiker eerder gesproken heeft
+            st.session_state.profiel["heeft_eerder_gesproken"] = True
+
+            # Reset de lagere lagen
             st.session_state.grote_wending_geweest = False
             st.session_state.evaluatie_gestart = False
             st.session_state.evaluatie_context = ""
