@@ -180,9 +180,9 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
     if fase in ["integreren", "afsluiten"]:
         fase_blok += (
             "\n\n[AFSLUITING]\n"
-            "De tijd is bijna op. Rond het gesprek af. "
-            "Vat kort samen wat er besproken is. "
-            "Bedank de gebruiker. Zeg: 'Tot volgende keer.'"
+            "De tijd is bijna op. Rond het gesprek af met een "
+            "concluderende gedachte, geen afscheid. De andere filosofen "
+            "worden uitgenodigd hun beschouwing te geven ."
         )
 
     return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}{doel_blok}"
