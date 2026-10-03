@@ -36,13 +36,19 @@ REGELS:
 - Elke filosoof heeft een eigen invalshoek.
 - Geen therapeutisch, juridisch of financieel advies.
 
+BELANGRIJK:
+- Socrates doet NIET mee in deze ronde. Hij heeft net het gesprek
+  afgesloten met een concluderende gedachte. De andere filosofen
+  reageren op de gebruiker.
+- Begin met de filosofen die nog niet of nauwelijks aan het woord waren.
+
 Sluit af met een JSON-blok tussen === JSON === en === EINDE JSON ===:
 
 {
   "reacties": [
     {
-      "filosoof": "socrates",
-      "naam": "Socrates",
+      "filosoof": "plato",
+      "naam": "Plato",
       "emoji": "🏛️",
       "tekst": "..."
     }
@@ -261,4 +267,4 @@ def bereken_leestijd(tekst):
 
     woorden = len(tekst.split())
     seconden = woorden / 3
-    return max(3, min(30, seconden))
+    return max(3, min(25, seconden))
