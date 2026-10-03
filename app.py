@@ -657,27 +657,21 @@ if gebruiker_input:
 
 
 # ============================================================
-# AFRONDING — knop om de sessie af te ronden
+# AFRONDING — automatisch starten zodra de fase "afsluiten" is bereikt
 # ============================================================
 fase_nu = bepaal_fase(st.session_state.profiel)
 
 if (fase_nu in ("afsluiten", "nazit")
-        and not st.session_state.evaluatie_gestart):
-    st.markdown("---")
-    st.markdown("### 🕊️ Klaar om af te ronden?")
-    st.caption(
-        "De sessietijd zit erop. Als je wilt, kijken de filosofen "
-        "nog één keer samen terug op wat er is gezegd."
+        and not st.session_state.evaluatie_gestart
+        and st.session_state.geschiedenis):
+    st.session_state.evaluatie_gestart = True
+    st.session_state.evaluatie_stap = 0
+    st.session_state.evaluatie_context = bouw_context(
+        st.session_state.profiel,
+        st.session_state.geschiedenis,
+        pantheon,
     )
-    if st.button("Sessie afronden", type="primary"):
-        st.session_state.evaluatie_gestart = True
-        st.session_state.evaluatie_stap = 0
-        st.session_state.evaluatie_context = bouw_context(
-            st.session_state.profiel,
-            st.session_state.geschiedenis,
-            pantheon,
-        )
-        st.rerun()
+    st.rerun()
 
 
 # ============================================================
