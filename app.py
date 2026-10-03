@@ -530,7 +530,9 @@ if not st.session_state.geschiedenis:
     toon_bericht(filosoof["naam"], eerste_vraag, filosoof["emoji"], datetime.now().strftime("%H:%M"))
 
 # Invoer
-gebruiker_input = st.chat_input("Waar wil je het over hebben?")
+gebruiker_input = None
+if not st.session_state.get("evaluatie_gestart", False):
+    gebruiker_input = st.chat_input("Waar wil je het over hebben?")
 
 if gebruiker_input:
     tijd = datetime.now().strftime("%H:%M")
