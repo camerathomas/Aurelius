@@ -12,6 +12,7 @@ from filosofen import (
     FILOSOFEN,
     STANDAARD_PANTHEON,
     beschikbare_filosofen,
+    PANTHEON_PER_LEVEL,
 )
 from coach import bouw_coach_prompt, kies_filosoof, chat
 from evaluatie import (
