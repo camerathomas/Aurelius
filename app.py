@@ -293,6 +293,18 @@ if "evaluatie_afsluiter" not in st.session_state:
     st.session_state.evaluatie_afsluiter = None
 if "evaluatie_stap" not in st.session_state:
     st.session_state.evaluatie_stap = 0
+if "archief_gevraagd" not in st.session_state:
+    st.session_state.archief_gevraagd = False
+if "archief_opgeslagen" not in st.session_state:
+    st.session_state.archief_opgeslagen = False
+if "eind_keuze_gemaakt" not in st.session_state:
+    st.session_state.eind_keuze_gemaakt = False
+if "nazit_gestart" not in st.session_state:
+    st.session_state.nazit_gestart = False
+if "einde" not in st.session_state:
+    st.session_state.einde = False
+if "evaluatie_afgerond" not in st.session_state:
+    st.session_state.evaluatie_afgerond = False
 
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
