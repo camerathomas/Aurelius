@@ -896,13 +896,8 @@ if st.session_state.evaluatie_gestart:
             st.rerun()
 
         else:
-            # Alles is getoond — toon de afsluitende boodschap
-            st.markdown("---")
-            st.success("Het eindgesprek is afgerond.")
-            st.caption(
-                "De volledige evaluatie wordt opgeslagen in je archief. "
-                "De PDF-versie volgt in een latere versie."
-            )
+            # Alles is getoond — markeer de evaluatie als afgerond
+            st.session_state.evaluatie_afgerond = True
 
 # ============================================================
 # EINDSCHERM — na de evaluatie
