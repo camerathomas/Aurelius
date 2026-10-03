@@ -213,6 +213,7 @@ if st.sidebar.button("🗑️ Wis alle gesprekken"):
         st.session_state.incheck_afgerond = False
         st.session_state.incheck = {}
         st.session_state.incheck_stap = 0
+        st.session_state.grote_wending_geweest = False
         st.sidebar.success("Gewist.")
         st.rerun()
     except Exception as e:
@@ -231,6 +232,8 @@ if "geschiedenis" not in st.session_state:
     st.session_state.geschiedenis = []
 if "profiel" not in st.session_state:
     st.session_state.profiel = laad_profiel(gebruiker_id)
+if "grote_wending_geweest" not in st.session_state:
+    st.session_state.grote_wending_geweest = False
 
 # Zorg dat level bestaat
 if "level" not in st.session_state.profiel:
@@ -353,6 +356,8 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
 
+            st.session_state.grote_wending_geweest = False
+
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
@@ -427,7 +432,6 @@ if not st.session_state.geschiedenis:
     volgorde = incheck.get("volgorde", [])
     eerste_waarde = volgorde[0] if volgorde else "Respect"
 
-    # De coach constateert kort wat de gebruiker heeft ingevuld
     opening_delen = []
     if openheid:
         opening_delen.append(f"Je vertelt: *{openheid}*")
@@ -452,7 +456,6 @@ if not st.session_state.geschiedenis:
         pass
     toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
 
-    # De coach stelt zijn eerste vraag op basis van de incheck
     eerste_vraag_prompt = (
         f"De gebruiker heeft net de incheck ingevuld:\n"
         f"- Wat speelt er: {openheid}\n"
@@ -518,20 +521,74 @@ if gebruiker_input:
     st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
     fase = bepaal_fase(st.session_state.profiel)
 
-    if pantheon:
-        filosoof_naam = kies_filosoof(st.session_state.profiel, pantheon, gebruiker_input)
+    # Is de grote wending nodig?
+    minuten = bereken_sessie_minuten(st.session_state.profiel)
+    duur = st.session_state.profiel.get("sessie_duur", 25)
+    halverwege = minuten >= (duur / 2)
+    wending_nodig = halverwege and not st.session_state.grote_wending_geweest
+
+    if wending_nodig:
+        eerdere_filosofen = [
+            b["naam"] for b in st.session_state.geschiedenis
+            if b["naam"] != "Jij"
+        ]
+        andere_filosofen = [
+            f for f in pantheon
+            if FILOSOFEN[f]["naam"] not in eerdere_filosofen
+        ] or pantheon
+
+        if andere_filosofen:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, andere_filosofen, gebruiker_input
+            )
+        elif pantheon:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, pantheon, gebruiker_input
+            )
+        else:
+            filosoof_naam = "aurelius"
+
+        st.session_state.grote_wending_geweest = True
+
+        filosoof = FILOSOFEN[filosoof_naam]
+
+        system_prompt = bouw_coach_prompt(
+            filosoof=filosoof,
+            profiel=st.session_state.profiel,
+            modus="Coach",
+            fase=fase,
+            vragen=VRAGEN_PER_FASE.get(fase, [])
+        )
+
+        system_prompt += (
+            "\n\n[OVERGANGSMOMENT]\n"
+            "We zijn halverwege de sessie. Je bent een andere filosoof dan "
+            "degene die tot nu toe sprak. Jouw taak in deze beurt:\n"
+            "1. Vat in 2-3 zinnen samen wat er tot nu toe besproken is, "
+            "in jouw eigen woorden.\n"
+            "2. Breng een nieuw perspectief in dat nog niet aan bod kwam — "
+            "iets wat jouw filosofie toevoegt aan wat er al gezegd is.\n"
+            "3. Eindig met één nieuwe vraag die het gesprek verder opent.\n"
+            "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
+        )
+
     else:
-        filosoof_naam = "aurelius"
+        if pantheon:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, pantheon, gebruiker_input
+            )
+        else:
+            filosoof_naam = "aurelius"
 
-    filosoof = FILOSOFEN[filosoof_naam]
+        filosoof = FILOSOFEN[filosoof_naam]
 
-    system_prompt = bouw_coach_prompt(
-        filosoof=filosoof,
-        profiel=st.session_state.profiel,
-        modus="Coach",
-        fase=fase,
-        vragen=VRAGEN_PER_FASE.get(fase, [])
-    )
+        system_prompt = bouw_coach_prompt(
+            filosoof=filosoof,
+            profiel=st.session_state.profiel,
+            modus="Coach",
+            fase=fase,
+            vragen=VRAGEN_PER_FASE.get(fase, [])
+        )
 
     einde_check = check_einde_sessie(st.session_state.profiel)
     if einde_check:
