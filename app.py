@@ -656,14 +656,23 @@ if gebruiker_input:
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
-
-
 # ============================================================
-# AFRONDING — automatisch starten zodra de fase "afsluiten" is bereikt
+# AFRONDING — automatisch starten zodra Socrates heeft afgesloten
 # ============================================================
 fase_nu = bepaal_fase(st.session_state.profiel)
 
+laatste_bericht = (
+    st.session_state.geschiedenis[-1]
+    if st.session_state.geschiedenis
+    else None
+)
+laatste_is_coach = (
+    laatste_bericht is not None
+    and laatste_bericht.get("naam") != "Jij"
+)
+
 if (fase_nu in ("afsluiten", "nazit")
+        and laatste_is_coach
         and not st.session_state.evaluatie_gestart
         and st.session_state.geschiedenis):
     st.session_state.evaluatie_gestart = True
@@ -781,3 +790,4 @@ if st.session_state.evaluatie_gestart:
                 "De volledige evaluatie wordt opgeslagen in je archief. "
                 "De PDF-versie volgt in een latere versie."
             )
+
