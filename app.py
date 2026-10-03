@@ -14,6 +14,17 @@ from filosofen import (
     beschikbare_filosofen,
 )
 from coach import bouw_coach_prompt, kies_filosoof, chat
+from evaluatie import (
+    EVALUATIE_RONDE_1,
+    EVALUATIE_RONDE_2,
+    EVALUATIE_RONDE_3,
+    EVALUATIE_AFSLUITER,
+    haal_reacties_op,
+    bouw_context,
+    bepaal_meest_gesproken,
+    verzamel_alle_reacties,
+    bereken_leestijd,
+)
 
 # ============================================================
 # Configuratie
@@ -167,11 +178,9 @@ st.sidebar.caption("Jouw filosofische metgezel")
 
 gebruiker_id = st.sidebar.text_input("Gebruikersnaam", value="remco")
 
-# --- Level en voortgang ---
 level = st.session_state.get("profiel", {}).get("level", 1)
 st.sidebar.markdown(f"### 🎯 Level {level}")
 
-# --- Model ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔌 Model")
 
@@ -184,7 +193,6 @@ else:
     model_naam = st.sidebar.selectbox("Model", ["llama3.2:latest", "qwen3:4b-q4_K_M"])
     provider_key = "ollama"
 
-# --- Pantheon (met level-filter) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎭 Pantheon")
 
@@ -198,13 +206,11 @@ pantheon = st.sidebar.multiselect(
     help=f"Level {level} — er komen meer filosofen bij als je groeit."
 )
 
-# --- Parameters ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔧 Parameters")
 
 max_historie = st.sidebar.slider("Max. berichten in context", 4, 40, 12, 2)
 
-# --- Archief ---
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Wis alle gesprekken"):
     try:
@@ -214,6 +220,11 @@ if st.sidebar.button("🗑️ Wis alle gesprekken"):
         st.session_state.incheck = {}
         st.session_state.incheck_stap = 0
         st.session_state.grote_wending_geweest = False
+        st.session_state.evaluatie_gestart = False
+        st.session_state.evaluatie_context = ""
+        st.session_state.evaluatie_rondes = None
+        st.session_state.evaluatie_afsluiter = None
+        st.session_state.evaluatie_stap = 0
         st.sidebar.success("Gewist.")
         st.rerun()
     except Exception as e:
@@ -234,8 +245,17 @@ if "profiel" not in st.session_state:
     st.session_state.profiel = laad_profiel(gebruiker_id)
 if "grote_wending_geweest" not in st.session_state:
     st.session_state.grote_wending_geweest = False
+if "evaluatie_gestart" not in st.session_state:
+    st.session_state.evaluatie_gestart = False
+if "evaluatie_context" not in st.session_state:
+    st.session_state.evaluatie_context = ""
+if "evaluatie_rondes" not in st.session_state:
+    st.session_state.evaluatie_rondes = None
+if "evaluatie_afsluiter" not in st.session_state:
+    st.session_state.evaluatie_afsluiter = None
+if "evaluatie_stap" not in st.session_state:
+    st.session_state.evaluatie_stap = 0
 
-# Zorg dat level bestaat
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
 
@@ -357,6 +377,11 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["laatste_bericht"] = time.time()
 
             st.session_state.grote_wending_geweest = False
+            st.session_state.evaluatie_gestart = False
+            st.session_state.evaluatie_context = ""
+            st.session_state.evaluatie_rondes = None
+            st.session_state.evaluatie_afsluiter = None
+            st.session_state.evaluatie_stap = 0
 
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
@@ -521,7 +546,6 @@ if gebruiker_input:
     st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
     fase = bepaal_fase(st.session_state.profiel)
 
-    # Is de grote wending nodig?
     minuten = bereken_sessie_minuten(st.session_state.profiel)
     duur = st.session_state.profiel.get("sessie_duur", 25)
     halverwege = minuten >= (duur / 2)
@@ -566,8 +590,7 @@ if gebruiker_input:
             "degene die tot nu toe sprak. Jouw taak in deze beurt:\n"
             "1. Vat in 2-3 zinnen samen wat er tot nu toe besproken is, "
             "in jouw eigen woorden.\n"
-            "2. Breng een nieuw perspectief in dat nog niet aan bod kwam — "
-            "iets wat jouw filosofie toevoegt aan wat er al gezegd is.\n"
+            "2. Breng een nieuw perspectief in dat nog niet aan bod kwam.\n"
             "3. Eindig met één nieuwe vraag die het gesprek verder opent.\n"
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
         )
@@ -624,3 +647,133 @@ if gebruiker_input:
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
+
+# ============================================================
+# AFRONDING — knop om de sessie af te ronden
+# ============================================================
+fase_nu = bepaal_fase(st.session_state.profiel)
+
+if (fase_nu in ("afsluiten", "nazit")
+        and not st.session_state.evaluatie_gestart):
+    st.markdown("---")
+    st.markdown("### 🕊️ Klaar om af te ronden?")
+    st.caption(
+        "De sessietijd zit erop. Als je wilt, kijken de filosofen "
+        "nog één keer samen terug op wat er is gezegd."
+    )
+    if st.button("Sessie afronden", type="primary"):
+        st.session_state.evaluatie_gestart = True
+        st.session_state.evaluatie_stap = 0
+        st.session_state.evaluatie_context = bouw_context(
+            st.session_state.profiel,
+            st.session_state.geschiedenis,
+            pantheon,
+        )
+        st.rerun()
+
+
+# ============================================================
+# EINDEVALUATIE
+# ============================================================
+if st.session_state.evaluatie_gestart:
+    st.markdown("---")
+    st.markdown("## 🕊️ Eindgesprek")
+    st.caption("De filosofen kijken terug op wat er is gezegd.")
+
+    # --- Stap A: de drie rondes ophalen ---
+    if st.session_state.evaluatie_rondes is None:
+        with st.spinner("De filosofen denken na..."):
+            try:
+                context = st.session_state.evaluatie_context
+
+                # Ronde 1
+                data1 = haal_reacties_op(
+                    model_naam, provider_key,
+                    EVALUATIE_RONDE_1, context
+                )
+                rondes = {"ronde_1": (data1 or {}).get("reacties", [])}
+
+                # Ronde 2
+                context2 = context + "\n\n--- RONDE 1 ---\n"
+                for r in rondes["ronde_1"]:
+                    context2 += f"{r['naam']}: {r['tekst']}\n\n"
+                data2 = haal_reacties_op(
+                    model_naam, provider_key,
+                    EVALUATIE_RONDE_2, context2
+                )
+                rondes["ronde_2"] = (data2 or {}).get("reacties", [])
+
+                # Ronde 3
+                context3 = context + "\n\n--- RONDE 2 ---\n"
+                for r in rondes["ronde_2"]:
+                    context3 += f"{r['naam']}: {r['tekst']}\n\n"
+                data3 = haal_reacties_op(
+                    model_naam, provider_key,
+                    EVALUATIE_RONDE_3, context3
+                )
+                rondes["ronde_3"] = (data3 or {}).get("reacties", [])
+
+                st.session_state.evaluatie_rondes = rondes
+
+            except Exception as e:
+                st.error(f"Fout bij het ophalen van de evaluatie: {e}")
+
+    # --- Stap B: de afsluiter ophalen ---
+    if (st.session_state.evaluatie_rondes is not None
+            and st.session_state.evaluatie_afsluiter is None):
+        with st.spinner("De afsluiting wordt voorbereid..."):
+            try:
+                meest = bepaal_meest_gesproken(st.session_state.geschiedenis) or "Socrates"
+
+                context_afsluiter = st.session_state.evaluatie_context
+                context_afsluiter += f"\n\n--- MEEST GESPROKEN ---\n{meest}\n\n"
+
+                for ronde_naam, reacties in st.session_state.evaluatie_rondes.items():
+                    context_afsluiter += f"\n--- {ronde_naam.upper()} ---\n"
+                    for r in reacties:
+                        context_afsluiter += f"{r['naam']}: {r['tekst']}\n\n"
+
+                data_afsluiter = haal_reacties_op(
+                    model_naam, provider_key,
+                    EVALUATIE_AFSLUITER, context_afsluiter
+                )
+                st.session_state.evaluatie_afsluiter = (
+                    data_afsluiter or {}
+                ).get("afsluiter")
+
+            except Exception as e:
+                st.error(f"Fout bij de afsluiter: {e}")
+
+    # --- Stap C: de reacties één voor één tonen ---
+    if st.session_state.evaluatie_rondes is not None:
+        alle_reacties = verzamel_alle_reacties(
+            st.session_state.evaluatie_rondes,
+            st.session_state.evaluatie_afsluiter,
+        )
+
+        stap = st.session_state.evaluatie_stap
+
+        # Toon alle reacties tot en met de huidige stap
+        for i, (ronde_label, r) in enumerate(alle_reacties):
+            if i > stap:
+                break
+            with st.chat_message(r.get("naam", "?"), avatar=r.get("emoji", "🏛️")):
+                st.markdown(f"**{r.get('naam', '?')}** · _{ronde_label}_")
+                st.markdown(r.get("tekst", ""))
+
+        # Is er nog een volgende reactie?
+        if stap < len(alle_reacties) - 1:
+            volgende = alle_reacties[stap + 1][1]
+            wachttijd = bereken_leestijd(volgende.get("tekst", ""))
+            time.sleep(wachttijd)
+            st.session_state.evaluatie_stap = stap + 1
+            st.rerun()
+
+        else:
+            # Alles is getoond — toon de afsluitende boodschap
+            st.markdown("---")
+            st.success("Het eindgesprek is afgerond.")
+            st.caption(
+                "De volledige evaluatie wordt opgeslagen in je archief. "
+                "De PDF-versie volgt in een latere versie."
+            )
