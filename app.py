@@ -574,29 +574,41 @@ if gebruiker_input:
 
         st.session_state.grote_wending_geweest = True
 
-        filosoof = FILOSOFEN[filosoof_naam]
+    else:
+        if pantheon:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, pantheon, gebruiker_input
+            )
+        else:
+            filosoof_naam = "aurelius"
 
-        system_prompt = bouw_coach_prompt(
-            filosoof=filosoof,
-            profiel=st.session_state.profiel,
-            modus="Coach",
-            fase=fase,
-            vragen=VRAGEN_PER_FASE.get(fase, [])
-        )
-# Socrates: elenchus alleen in het begin
-if filosoof.get("naam") == "Socrates":
-    aantal_socrates = sum(
-        1 for b in st.session_state.geschiedenis
-        if b.get("naam") == "Socrates"
+    filosoof = FILOSOFEN[filosoof_naam]
+
+    system_prompt = bouw_coach_prompt(
+        filosoof=filosoof,
+        profiel=st.session_state.profiel,
+        modus="Coach",
+        fase=fase,
+        vragen=VRAGEN_PER_FASE.get(fase, [])
     )
-    if aantal_socrates >= 3:
-        system_prompt += (
-            "\n\n[ELENCHUS VOORBIJ]\n"
-            "Je hebt de elenchus al gebruikt in de eerste beurten. "
-            "Ga nu over op een gewoon filosofisch gesprek. Blijf "
-            "onderzoekend en vriendelijk, maar herhaal niet steeds "
-            "hetzelfde patroon van instemming-consequentie-tegenstrijdigheid."
-            
+
+    # Socrates: elenchus alleen in het begin
+    if filosoof.get("naam") == "Socrates":
+        aantal_socrates = sum(
+            1 for b in st.session_state.geschiedenis
+            if b.get("naam") == "Socrates"
+        )
+        if aantal_socrates >= 3:
+            system_prompt += (
+                "\n\n[ELENCHUS VOORBIJ]\n"
+                "Je hebt de elenchus al gebruikt in de eerste beurten. "
+                "Ga nu over op een gewoon filosofisch gesprek. Blijf "
+                "onderzoekend en vriendelijk, maar herhaal niet steeds "
+                "hetzelfde patroon van instemming-consequentie-tegenstrijdigheid."
+            )
+
+    # Grote wending: halverwege de sessie
+    if wending_nodig:
         system_prompt += (
             "\n\n[OVERGANGSMOMENT]\n"
             "We zijn halverwege de sessie. Je bent een andere filosoof dan "
@@ -606,24 +618,6 @@ if filosoof.get("naam") == "Socrates":
             "2. Breng een nieuw perspectief in dat nog niet aan bod kwam.\n"
             "3. Eindig met één nieuwe vraag die het gesprek verder opent.\n"
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
-        )
-
-    else:
-        if pantheon:
-            filosoof_naam = kies_filosoof(
-                st.session_state.profiel, pantheon, gebruiker_input
-            )
-        else:
-            filosoof_naam = "aurelius"
-
-        filosoof = FILOSOFEN[filosoof_naam]
-
-        system_prompt = bouw_coach_prompt(
-            filosoof=filosoof,
-            profiel=st.session_state.profiel,
-            modus="Coach",
-            fase=fase,
-            vragen=VRAGEN_PER_FASE.get(fase, [])
         )
 
     einde_check = check_einde_sessie(st.session_state.profiel)
@@ -660,6 +654,7 @@ if filosoof.get("naam") == "Socrates":
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
+
 
 # ============================================================
 # AFRONDING — knop om de sessie af te ronden
