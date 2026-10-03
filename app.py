@@ -147,6 +147,43 @@ def check_einde_sessie(profiel):
         )
     return None
 
+# ============================================================
+# Tweede sessie — vergelijking van de incheck
+# ============================================================
+def vergelijk_incheck(oud, nieuw):
+    """Vergelijkt twee inchecks en geeft een dict met verschillen."""
+    oude_volgorde = oud.get("volgorde", [])
+    nieuwe_volgorde = nieuw.get("volgorde", [])
+    return {
+        "volgorde_gelijk": oude_volgorde == nieuwe_volgorde,
+        "oude_volgorde": oude_volgorde,
+        "nieuwe_volgorde": nieuwe_volgorde,
+        "eerste_keer": not oude_volgorde,
+    }
+
+
+def bouw_pantheon_voor_sessie(profiel, is_eerste_gesprek):
+    """
+    Bepaalt het pantheon voor deze sessie.
+    - Eerste gesprek: level 1
+    - Daarna: Marcus Aurelius + 4 filosofen uit het volgende level
+    """
+    huidig_level = profiel.get("level", 1)
+
+    if is_eerste_gesprek:
+        level_filosofen = PANTHEON_PER_LEVEL.get(1, [])
+        return level_filosofen
+
+    # Volgend level
+    volgend_level = min(huidig_level + 1, 5)
+    nieuwe_filosofen = [
+        f for f in PANTHEON_PER_LEVEL.get(volgend_level, [])
+        if f != "marcus_aurelius"
+    ]
+
+    # Marcus Aurelius + maximaal 4 anderen
+    pantheon_nieuw = ["marcus_aurelius"] + nieuwe_filosofen[:4]
+    return pantheon_nieuw
 
 # ============================================================
 # Incheck-vragen
