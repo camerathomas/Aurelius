@@ -900,37 +900,6 @@ if st.session_state.evaluatie_gestart:
             st.session_state.evaluatie_afgerond = True
 
 # ============================================================
-# EINDSCHERM — na de evaluatie
-# ============================================================
-if st.session_state.get("evaluatie_afgerond", False):
-    st.markdown("---")
-    st.markdown("## 🏛️ Sessie afgerond")
-    st.caption("Wat wil je nu doen?")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        if st.button("📁 Archiveer sessie"):
-            archiveer_sessie(st.session_state.profiel, st.session_state.geschiedenis)
-            st.session_state.archief_gedaan = True
-            st.success("Sessie gearchiveerd.")
-
-    with col2:
-        if st.button("☕ Nazit doen"):
-            st.session_state.nazit_gestart = True
-            st.rerun()
-
-    with col3:
-        if st.button("🔄 Nieuwe sessie"):
-            reset_voor_nieuwe_sessie()
-            st.rerun()
-
-    with col4:
-        if st.button("👋 Afsluiten"):
-            st.session_state.einde = True
-            st.info("Bedankt voor het gesprek. Tot de volgende keer.")
-
-# ============================================================
 # EINDSCHERM — twee stappen
 # ============================================================
 
