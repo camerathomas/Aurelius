@@ -141,6 +141,10 @@ def check_einde_sessie(profiel):
 # Incheck-vragen
 # ============================================================
 INCHECK_VRAGEN = [
+    {"sleutel": "openheid",
+     "vraag": "Wat gaat er om in je bewustzijn? Wat speelt er vandaag? Waar wil je het over hebben?",
+     "type": "tekst",
+     "placeholder": "Vertel vrijuit — er is geen goed of fout antwoord."},
     {"sleutel": "emotie", "vraag": "Hoe gaat het vandaag?", "type": "tekst",
      "placeholder": "Bijvoorbeeld: druk, moe, rustig..."},
     {"sleutel": "overzicht", "vraag": "Heb je overzicht over je leven?", "type": "slider",
@@ -327,6 +331,7 @@ if not st.session_state.incheck_afgerond:
     else:
         st.markdown("### ✅ Klaar")
         incheck = st.session_state.incheck
+        st.markdown(f"- **Wat speelt er**: {incheck.get('openheid', '—')}")
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
         st.markdown(f"- **Overzicht**: {incheck.get('overzicht', '—')}/10")
         st.markdown(f"- **Intentie**: {incheck.get('intentie', '—')}")
@@ -338,6 +343,7 @@ if not st.session_state.incheck_afgerond:
         if st.button("🚀 Start gesprek", type="primary"):
             st.session_state.incheck_afgerond = True
             st.session_state.profiel["laatste_incheck"] = incheck
+            st.session_state.profiel["openheid"] = incheck.get("openheid", "")
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = volgorde
 
@@ -389,6 +395,7 @@ st.markdown(f"<small>{fase_weergave}</small>", unsafe_allow_html=True)
 
 if incheck:
     with st.expander("📋 Jouw incheck", expanded=False):
+        st.markdown(f"- **Wat speelt er**: {incheck.get('openheid', '—')}")
         st.markdown(f"- **Emotie**: {incheck.get('emotie', '—')}")
         st.markdown(f"- **Overzicht**: {incheck.get('overzicht', '—')}/10")
         st.markdown(f"- **Intentie**: {incheck.get('intentie', '—')}")
@@ -413,17 +420,27 @@ for b in st.session_state.geschiedenis:
 
 # Eerste coach-beurt
 if not st.session_state.geschiedenis:
+    openheid = incheck.get("openheid", "")
     emotie = incheck.get("emotie", "")
     overzicht = incheck.get("overzicht", 5)
     intentie = incheck.get("intentie", "")
     volgorde = incheck.get("volgorde", [])
     eerste_waarde = volgorde[0] if volgorde else "Respect"
 
-    opening = (
-        f"Je zegt: {emotie}. Je gaf een {overzicht}/10 op overzicht. "
-        f"En je wilt: {intentie.lower()}.\n\n"
-        f"Je zet **{eerste_waarde}** bovenaan. Laten we daar beginnen."
-    )
+    # De coach constateert kort wat de gebruiker heeft ingevuld
+    opening_delen = []
+    if openheid:
+        opening_delen.append(f"Je vertelt: *{openheid}*")
+    if emotie:
+        opening_delen.append(f"Je zegt: *{emotie}*")
+    opening_delen.append(f"Je gaf een **{overzicht}/10** op overzicht")
+    if intentie:
+        opening_delen.append(f"Je wilt: **{intentie.lower()}**")
+    if volgorde:
+        staart = f" → {' → '.join(volgorde[1:])}" if len(volgorde) > 1 else ""
+        opening_delen.append(f"Je zet **{eerste_waarde}** bovenaan{staart}")
+
+    opening = "  \n".join(opening_delen) + "\n\nLaten we daar beginnen."
 
     st.session_state.geschiedenis.append({
         "naam": "Coach", "tekst": opening, "icoon": "🏛️",
@@ -434,6 +451,55 @@ if not st.session_state.geschiedenis:
     except Exception:
         pass
     toon_bericht("Coach", opening, "🏛️", datetime.now().strftime("%H:%M"))
+
+    # De coach stelt zijn eerste vraag op basis van de incheck
+    eerste_vraag_prompt = (
+        f"De gebruiker heeft net de incheck ingevuld:\n"
+        f"- Wat speelt er: {openheid}\n"
+        f"- Emotie: {emotie}\n"
+        f"- Overzicht: {overzicht}/10\n"
+        f"- Intentie: {intentie}\n"
+        f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
+        f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
+        f"Geen herhaling van de incheck, geen samenvatting. "
+        f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
+        f"en die het gesprek opent. Kort, direct, uitnodigend."
+    )
+
+    if pantheon:
+        filosoof_naam = kies_filosoof(
+            st.session_state.profiel, pantheon, openheid or emotie or "begin"
+        )
+    else:
+        filosoof_naam = "aurelius"
+
+    filosoof = FILOSOFEN[filosoof_naam]
+
+    system_prompt = bouw_coach_prompt(
+        filosoof=filosoof,
+        profiel=st.session_state.profiel,
+        modus="Coach",
+        fase="opening",
+        vragen=VRAGEN_PER_FASE.get("opening", []),
+    )
+
+    with st.spinner(f"{filosoof['naam']} denkt na..."):
+        eerste_vraag = chat(
+            model=model_naam,
+            messages=[{"role": "user", "content": eerste_vraag_prompt}],
+            system_prompt=system_prompt,
+            provider=provider_key,
+        )
+
+    st.session_state.geschiedenis.append({
+        "naam": filosoof["naam"], "tekst": eerste_vraag,
+        "icoon": filosoof["emoji"], "tijd": datetime.now().strftime("%H:%M"),
+    })
+    try:
+        bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", eerste_vraag)
+    except Exception:
+        pass
+    toon_bericht(filosoof["naam"], eerste_vraag, filosoof["emoji"], datetime.now().strftime("%H:%M"))
 
 # Invoer
 gebruiker_input = st.chat_input("Waar wil je het over hebben?")
