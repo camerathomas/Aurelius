@@ -34,7 +34,7 @@ def initialiseer():
 
     # Voeg kolommen toe als ze nog niet bestaan
     try:
-        cursor.execute("ALTER TABLE profielen ADD COLUMN sessie_duur INTEGER DEFAULT 25")
+        cursor.execute("ALTER TABLE profielen ADD COLUMN sessie_duur INTEGER DEFAULT 10")
     except Exception:
         pass
     try:
@@ -51,6 +51,10 @@ def initialiseer():
         pass
     try:
         cursor.execute("ALTER TABLE profielen ADD COLUMN laatste_bericht REAL DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN level INTEGER DEFAULT 1")
     except Exception:
         pass
 
@@ -94,19 +98,20 @@ def bewaar_profiel(profiel):
         INSERT OR REPLACE INTO profielen
         (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
-         laatste_bericht, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         laatste_bericht, level, bijgewerkt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
         json.dumps(profiel.get("laatste_incheck", {})),
         json.dumps(profiel.get("themas", [])),
         json.dumps(profiel.get("waarde_volgorde", [])),
-        profiel.get("sessie_duur", 25),
+        profiel.get("sessie_duur", 10),
         1 if profiel.get("heeft_eerder_gesproken", False) else 0,
         profiel.get("sessie_tijd", 0),
         profiel.get("sessie_start", 0),
         profiel.get("laatste_bericht", 0),
+        profiel.get("level", 1),
     ))
 
     conn.commit()
@@ -132,11 +137,12 @@ def laad_profiel(gebruiker_id):
                 "laatste_incheck": json.loads(rij[2]) if rij[2] else {},
                 "themas": json.loads(rij[3]) if rij[3] else [],
                 "waarde_volgorde": json.loads(rij[4]) if rij[4] else [],
-                "sessie_duur": int(rij[5]) if len(rij) > 5 and rij[5] else 25,
+                "sessie_duur": int(rij[5]) if len(rij) > 5 and rij[5] else 10,
                 "heeft_eerder_gesproken": bool(rij[6]) if len(rij) > 6 and rij[6] else False,
                 "sessie_tijd": float(rij[7]) if len(rij) > 7 and rij[7] else 0,
                 "sessie_start": float(rij[8]) if len(rij) > 8 and rij[8] else 0,
                 "laatste_bericht": float(rij[9]) if len(rij) > 9 and rij[9] else 0,
+                "level": int(rij[10]) if len(rij) > 10 and rij[10] else 1,
             }
     except Exception:
         pass
@@ -147,11 +153,12 @@ def laad_profiel(gebruiker_id):
         "laatste_incheck": {},
         "themas": [],
         "waarde_volgorde": [],
-        "sessie_duur": 25,
+        "sessie_duur": 10,
         "heeft_eerder_gesproken": False,
         "sessie_tijd": 0,
         "sessie_start": 0,
         "laatste_bericht": 0,
+        "level": 1,
     }
 
 
@@ -202,12 +209,9 @@ def wis_gesprek(gebruiker_id):
 # ============================================================
 # Archief — gearchiveerde sessies
 # ============================================================
-
 def bewaar_sessie(gebruiker_id, thema, incheck, gesprek, rondes, afsluiter,
                   duur_minuten, pantheon):
-    """
-    Slaat een volledige sessie op in het archief.
-    """
+    """Slaat een volledige sessie op in het archief."""
     conn = _krijg_verbinding()
     cursor = conn.cursor()
 
@@ -232,9 +236,7 @@ def bewaar_sessie(gebruiker_id, thema, incheck, gesprek, rondes, afsluiter,
 
 
 def laad_sessies(gebruiker_id, limiet=20):
-    """
-    Laadt de laatste N gearchiveerde sessies van een gebruiker.
-    """
+    """Laadt de laatste N gearchiveerde sessies van een gebruiker."""
     try:
         conn = _krijg_verbinding()
         cursor = conn.cursor()
@@ -269,9 +271,7 @@ def laad_sessies(gebruiker_id, limiet=20):
 
 
 def laad_sessie(gebruiker_id, sessie_id):
-    """
-    Laadt één specifieke sessie op basis van het id.
-    """
+    """Laadt één specifieke sessie op basis van het id."""
     try:
         conn = _krijg_verbinding()
         cursor = conn.cursor()
