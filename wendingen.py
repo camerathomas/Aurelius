@@ -11,7 +11,8 @@ WENDINGEN = [
         "naam": "De anekdote",
         "instructie": (
             "[WENDING: DE ANEKDOTE]\n"
-            "Je bent een andere filosoof dan degene die tot nu toe sprak. "
+            "Deze wending wordt gedaan door een filosoof uit het pantheon "
+            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
             "Je ziet een patroon in wat de gebruiker heeft gezegd, en dat "
             "herinnert je aan iets uit je eigen werk. Citeer kort uit je "
             "eigen boek, noem de titel, en vraag of die vergelijking deels "
@@ -22,7 +23,8 @@ WENDINGEN = [
         "naam": "De incheckvragen",
         "instructie": (
             "[WENDING: DE INCHECKVRAGEN]\n"
-            "Je bent een andere filosoof dan degene die tot nu toe sprak. "
+            "Deze wending wordt gedaan door een filosoof uit het pantheon "
+            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
             "Kijk terug op de incheck van de gebruiker (wat speelt er, "
             "emotie, overzicht, intentie, waarde-volgorde). Stel één vraag "
             "die direct voortkomt uit wat de gebruiker daar heeft ingevuld. "
@@ -34,7 +36,8 @@ WENDINGEN = [
         "naam": "De spiegel",
         "instructie": (
             "[WENDING: DE SPIEGEL]\n"
-            "Je bent een andere filosoof dan degene die tot nu toe sprak. "
+            "Deze wending wordt gedaan door een filosoof uit het pantheon "
+            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
             "Vat in één zin samen wat de gebruiker net zei, in jouw eigen "
             "woorden, zonder oordeel. Vraag dan: 'Klopt dat?' of 'Is dat "
             "wat je bedoelt?' Wacht op het antwoord en ga daarna verder "
@@ -45,7 +48,8 @@ WENDINGEN = [
         "naam": "De andere kant",
         "instructie": (
             "[WENDING: DE ANDERE KANT]\n"
-            "Je bent een andere filosoof dan degene die tot nu toe sprak. "
+            "Deze wending wordt gedaan door een filosoof uit het pantheon "
+            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
             "Neem het tegenovergestelde standpunt in van wat de gebruiker "
             "net zei. Doe dit niet provocerend, maar onderzoekend: 'Stel "
             "nu eens dat het omgekeerde waar is...' of 'Wat als je je "
@@ -73,7 +77,6 @@ def moet_wending_komen(minuten, duur, al_geweest):
     if duur <= 0:
         return None
 
-    # Drempels: 5, 10, 15, ... maar niet op de duur zelf
     drempels = []
     teller = 5
     while teller < duur:
