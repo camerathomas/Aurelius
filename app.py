@@ -664,7 +664,6 @@ if not st.session_state.geschiedenis:
 gebruiker_input = None
 if not st.session_state.get("evaluatie_gestart", False):
     gebruiker_input = st.chat_input("Waar wil je het over hebben?")
-
 if gebruiker_input:
     tijd = datetime.now().strftime("%H:%M")
     st.session_state.geschiedenis.append({
@@ -683,6 +682,11 @@ if gebruiker_input:
     duur = veilige_duur(st.session_state.profiel)
     halverwege = minuten >= (duur / 2)
     wending_nodig = halverwege and not st.session_state.grote_wending_geweest
+
+    # Wendingen om de 5 minuten sessietijd
+    drempel = moet_wending_komen(
+        minuten, duur, st.session_state.wendingen_geweest
+    )
 
     if wending_nodig:
         eerdere_filosofen = [
@@ -706,6 +710,34 @@ if gebruiker_input:
             filosoof_naam = "marcus_aurelius"
 
         st.session_state.grote_wending_geweest = True
+
+    elif drempel is not None:
+        wending = kies_random_wending()
+
+        eerdere_filosofen = [
+            b["naam"] for b in st.session_state.geschiedenis
+            if b["naam"] != "Jij"
+        ]
+        kandidaten = [
+            f for f in pantheon
+            if FILOSOFEN[f]["naam"] not in eerdere_filosofen
+        ]
+        if not kandidaten:
+            kandidaten = pantheon
+
+        if kandidaten:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, kandidaten, gebruiker_input
+            )
+        elif pantheon:
+            filosoof_naam = kies_filosoof(
+                st.session_state.profiel, pantheon, gebruiker_input
+            )
+        else:
+            filosoof_naam = "marcus_aurelius"
+
+        st.session_state.wendingen_geweest.append(drempel)
+        st.session_state.huidige_wending_label = wending["naam"]
 
     else:
         if pantheon:
@@ -750,6 +782,10 @@ if gebruiker_input:
             "3. Eindig met één nieuwe vraag die het gesprek verder opent.\n"
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
         )
+
+    if drempel is not None:
+        wending_tekst = kies_random_wending()
+        system_prompt += f"\n\n{wending_tekst['instructie']}"
 
     minuten = bereken_sessie_minuten(st.session_state.profiel)
     duur = veilige_duur(st.session_state.profiel)
@@ -818,10 +854,15 @@ if gebruiker_input:
         pass
     toon_bericht(filosoof["naam"], antwoord, filosoof["emoji"], tijd)
 
+    if st.session_state.get("huidige_wending_label"):
+        st.caption(f"🔄 Wending: {st.session_state.huidige_wending_label}")
+        st.session_state.huidige_wending_label = None
+
     try:
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
+
 
 
 # ============================================================
