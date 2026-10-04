@@ -81,7 +81,6 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter):
     duur = profiel.get("sessie_duur", 25)
     pantheon_nu = st.session_state.get("pantheon", [])
 
-    # Bepaal het thema op basis van de incheck
     thema = incheck.get("openheid", "")[:80] if incheck.get("openheid") else "onbekend"
 
     try:
@@ -119,6 +118,19 @@ def reset_voor_nieuwe_sessie():
     st.session_state.einde = False
     st.rerun()
 
+
+def veilige_duur(profiel):
+    """Haalt de sessieduur op en zorgt dat het altijd een getal is."""
+    duur = profiel.get("sessie_duur", 25)
+    try:
+        duur = int(duur)
+    except (ValueError, TypeError):
+        duur = 25
+    if duur <= 0:
+        duur = 25
+    return duur
+
+
 # ============================================================
 # Fasen
 # ============================================================
@@ -147,11 +159,13 @@ VRAGEN_PER_FASE = {
 # ============================================================
 PAUZE_DREMPEL = 90
 BASIS_MARGE = 30
+VERSNELLING = 10  # tijdelijk: 10x sneller. Zet op 1 voor normaal gebruik.
+
 
 def update_sessie_tijd(profiel):
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
-    verschil = nu - laatste
+    verschil = (nu - laatste) * VERSNELLING
 
     if verschil < PAUZE_DREMPEL:
         profiel["sessie_tijd"] = profiel.get("sessie_tijd", 0) + verschil
@@ -161,15 +175,14 @@ def update_sessie_tijd(profiel):
     profiel["laatste_bericht"] = nu
     return profiel
 
+
 def bereken_sessie_minuten(profiel):
     return profiel.get("sessie_tijd", 0) / 60
 
 
 def bepaal_fase(profiel):
     minuten = bereken_sessie_minuten(profiel)
-    duur = profiel.get("sessie_duur", 25)
-    if duur <= 0:
-        return "opening"
+    duur = veilige_duur(profiel)
     percentage = minuten / duur
 
     for fase, (start, eind) in FASE_PERCENTAGES.items():
@@ -180,7 +193,7 @@ def bepaal_fase(profiel):
 
 def check_einde_sessie(profiel):
     minuten = bereken_sessie_minuten(profiel)
-    duur = profiel.get("sessie_duur", 25)
+    duur = veilige_duur(profiel)
     fase = bepaal_fase(profiel)
 
     if minuten >= duur and fase != "afsluiten":
@@ -191,6 +204,7 @@ def check_einde_sessie(profiel):
             "het de volgende keer afmaken?'"
         )
     return None
+
 
 # ============================================================
 # Tweede sessie — vergelijking van de incheck
@@ -219,16 +233,15 @@ def bouw_pantheon_voor_sessie(profiel, is_eerste_gesprek):
         level_filosofen = PANTHEON_PER_LEVEL.get(1, [])
         return level_filosofen
 
-    # Volgend level
     volgend_level = min(huidig_level + 1, 5)
     nieuwe_filosofen = [
         f for f in PANTHEON_PER_LEVEL.get(volgend_level, [])
         if f != "marcus_aurelius"
     ]
 
-    # Marcus Aurelius + maximaal 4 anderen
     pantheon_nieuw = ["marcus_aurelius"] + nieuwe_filosofen[:4]
     return pantheon_nieuw
+
 
 # ============================================================
 # Incheck-vragen
@@ -458,15 +471,12 @@ if not st.session_state.incheck_afgerond:
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
         if st.button("🚀 Start gesprek", type="primary"):
-            # Bepaal of dit het eerste gesprek is
             is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
 
-            # Bewaar de oude incheck als vorige_incheck
             oude_incheck = st.session_state.profiel.get("laatste_incheck", {})
             if oude_incheck:
                 st.session_state.profiel["vorige_incheck"] = oude_incheck
 
-            # Sla de nieuwe incheck op
             st.session_state.incheck_afgerond = True
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["openheid"] = incheck.get("openheid", "")
@@ -479,11 +489,8 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["sessie_start"] = time.time()
             st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
-
-            # Markeer dat de gebruiker eerder gesproken heeft
             st.session_state.profiel["heeft_eerder_gesproken"] = True
 
-            # Reset de lagere lagen
             st.session_state.grote_wending_geweest = False
             st.session_state.evaluatie_gestart = False
             st.session_state.evaluatie_context = ""
@@ -505,7 +512,7 @@ st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
 
 fase = bepaal_fase(st.session_state.profiel)
 minuten = bereken_sessie_minuten(st.session_state.profiel)
-duur = st.session_state.profiel.get("sessie_duur", 25)
+duur = veilige_duur(st.session_state.profiel)
 resterend = max(0, duur - minuten)
 
 st.markdown("---")
@@ -565,20 +572,16 @@ if not st.session_state.geschiedenis:
     volgorde = incheck.get("volgorde", [])
     eerste_waarde = volgorde[0] if volgorde else "Respect"
 
-    # Bepaal of dit het eerste gesprek is
     is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
 
-    # Bepaal het pantheon voor deze sessie
     start_pantheon = bouw_pantheon_voor_sessie(
         st.session_state.profiel, is_eerste_gesprek
     )
     st.session_state.pantheon = start_pantheon
-    
-    # Vergelijk de incheck met de vorige
+
     vorige_incheck = st.session_state.profiel.get("vorige_incheck", {})
     vergelijk = vergelijk_incheck(vorige_incheck, incheck)
 
-    # Bepaal de openingsvraag
     if is_eerste_gesprek:
         eerste_vraag_prompt = (
             f"De gebruiker heeft net de incheck ingevuld:\n"
@@ -611,7 +614,6 @@ if not st.session_state.geschiedenis:
                 f"Of een variant daarop. Kort en direct."
             )
 
-    # Kies de filosoof: bij de tweede sessie Marcus Aurelius, anders de AI
     if is_eerste_gesprek:
         if start_pantheon:
             filosoof_naam = kies_filosoof(
@@ -670,7 +672,7 @@ if gebruiker_input:
     fase = bepaal_fase(st.session_state.profiel)
 
     minuten = bereken_sessie_minuten(st.session_state.profiel)
-    duur = st.session_state.profiel.get("sessie_duur", 25)
+    duur = veilige_duur(st.session_state.profiel)
     halverwege = minuten >= (duur / 2)
     wending_nodig = halverwege and not st.session_state.grote_wending_geweest
 
@@ -693,7 +695,7 @@ if gebruiker_input:
                 st.session_state.profiel, pantheon, gebruiker_input
             )
         else:
-            filosoof_naam = "aurelius"
+            filosoof_naam = "marcus_aurelius"
 
         st.session_state.grote_wending_geweest = True
 
@@ -703,7 +705,7 @@ if gebruiker_input:
                 st.session_state.profiel, pantheon, gebruiker_input
             )
         else:
-            filosoof_naam = "aurelius"
+            filosoof_naam = "marcus_aurelius"
 
     filosoof = FILOSOFEN[filosoof_naam]
 
@@ -715,11 +717,11 @@ if gebruiker_input:
         vragen=VRAGEN_PER_FASE.get(fase, [])
     )
 
-    # Socrates: elenchus alleen in het begin
     if filosoof.get("naam") == "Socrates":
         aantal_socrates = sum(
             1 for b in st.session_state.geschiedenis
-            if b.get("naam") == "Socrates"
+            if b.get("naam")
+                "naam": "Socrates"
         )
         if aantal_socrates >= 3:
             system_prompt += (
@@ -730,7 +732,6 @@ if gebruiker_input:
                 "hetzelfde patroon van instemming-consequentie-tegenstrijdigheid."
             )
 
-    # Grote wending: halverwege de sessie
     if wending_nodig:
         system_prompt += (
             "\n\n[OVERGANGSMOMENT]\n"
@@ -743,9 +744,8 @@ if gebruiker_input:
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
         )
 
-    # Subtiele terugkoppeling naar de woordvolgorde (alleen na 60% van de sessie)
     minuten = bereken_sessie_minuten(st.session_state.profiel)
-    duur = st.session_state.profiel.get("sessie_duur", 25)
+    duur = veilige_duur(st.session_state.profiel)
     percentage = minuten / duur if duur > 0 else 0
     mag_terugkoppelen = percentage >= 0.60
 
@@ -780,7 +780,7 @@ if gebruiker_input:
                 f"mag je er subtiel op terugkomen. Forceer het niet. Maximaal "
                 f"2 keer per gesprek."
             )
-    
+
     einde_check = check_einde_sessie(st.session_state.profiel)
     if einde_check:
         system_prompt += f"\n\n[EINDE SESSIE]\n{einde_check}"
@@ -815,6 +815,8 @@ if gebruiker_input:
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
+
+
 # ============================================================
 # AFRONDING — automatisch starten zodra Socrates heeft afgesloten
 # ============================================================
@@ -852,20 +854,17 @@ if st.session_state.evaluatie_gestart:
     st.markdown("## 🕊️ Eindgesprek")
     st.caption("De filosofen kijken terug op wat er is gezegd.")
 
-    # --- Stap A: de drie rondes ophalen ---
     if st.session_state.evaluatie_rondes is None:
         with st.spinner("De filosofen denken na..."):
             try:
                 context = st.session_state.evaluatie_context
 
-                # Ronde 1
                 data1 = haal_reacties_op(
                     model_naam, provider_key,
                     EVALUATIE_RONDE_1, context
                 )
                 rondes = {"ronde_1": (data1 or {}).get("reacties", [])}
 
-                # Ronde 2
                 context2 = context + "\n\n--- RONDE 1 ---\n"
                 for r in rondes["ronde_1"]:
                     context2 += f"{r['naam']}: {r['tekst']}\n\n"
@@ -875,7 +874,6 @@ if st.session_state.evaluatie_gestart:
                 )
                 rondes["ronde_2"] = (data2 or {}).get("reacties", [])
 
-                # Ronde 3
                 context3 = context + "\n\n--- RONDE 2 ---\n"
                 for r in rondes["ronde_2"]:
                     context3 += f"{r['naam']}: {r['tekst']}\n\n"
@@ -890,7 +888,6 @@ if st.session_state.evaluatie_gestart:
             except Exception as e:
                 st.error(f"Fout bij het ophalen van de evaluatie: {e}")
 
-    # --- Stap B: de afsluiter ophalen ---
     if (st.session_state.evaluatie_rondes is not None
             and st.session_state.evaluatie_afsluiter is None):
         with st.spinner("De afsluiting wordt voorbereid..."):
@@ -916,7 +913,6 @@ if st.session_state.evaluatie_gestart:
             except Exception as e:
                 st.error(f"Fout bij de afsluiter: {e}")
 
-    # --- Stap C: de reacties één voor één tonen ---
     if st.session_state.evaluatie_rondes is not None:
         alle_reacties = verzamel_alle_reacties(
             st.session_state.evaluatie_rondes,
@@ -925,7 +921,6 @@ if st.session_state.evaluatie_gestart:
 
         stap = st.session_state.evaluatie_stap
 
-        # Toon alle reacties tot en met de huidige stap
         for i, (ronde_label, r) in enumerate(alle_reacties):
             if i > stap:
                 break
@@ -933,7 +928,6 @@ if st.session_state.evaluatie_gestart:
                 st.markdown(f"**{r.get('naam', '?')}** · _{ronde_label}_")
                 st.markdown(r.get("tekst", ""))
 
-        # Is er nog een volgende reactie?
         if stap < len(alle_reacties) - 1:
             volgende = alle_reacties[stap + 1][1]
             wachttijd = bereken_leestijd(volgende.get("tekst", ""))
@@ -942,14 +936,13 @@ if st.session_state.evaluatie_gestart:
             st.rerun()
 
         else:
-            # Alles is getoond — markeer de evaluatie als afgerond
             st.session_state.evaluatie_afgerond = True
+
 
 # ============================================================
 # EINDSCHERM — twee stappen
 # ============================================================
 
-# Stap 1: archiveren
 if (st.session_state.get("evaluatie_afgerond", False)
         and not st.session_state.get("archief_gevraagd", False)):
 
@@ -961,7 +954,6 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
     with col1:
         if st.button("📁 Ja, archiveer deze sessie", type="primary"):
-            # Sla de sessie op
             archiveer_sessie(
                 st.session_state.profiel,
                 st.session_state.geschiedenis,
@@ -969,7 +961,6 @@ if (st.session_state.get("evaluatie_afgerond", False)
                 st.session_state.evaluatie_afsluiter,
             )
 
-            # Verhoog het level
             huidig_level = st.session_state.profiel.get("level", 1)
             if huidig_level < 5:
                 st.session_state.profiel["level"] = huidig_level + 1
@@ -981,7 +972,6 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
     with col2:
         if st.button("Nee, bewaar niet"):
-            # Verhoog het level ook als de sessie niet wordt gearchiveerd
             huidig_level = st.session_state.profiel.get("level", 1)
             if huidig_level < 5:
                 st.session_state.profiel["level"] = huidig_level + 1
@@ -992,7 +982,6 @@ if (st.session_state.get("evaluatie_afgerond", False)
             st.rerun()
 
 
-# Stap 2: leeg scherm, dan de drie opties
 if (st.session_state.get("archief_gevraagd", False)
         and not st.session_state.get("eind_keuze_gemaakt", False)):
 
@@ -1023,8 +1012,7 @@ if (st.session_state.get("archief_gevraagd", False)
             st.rerun()
 
 
-# Stap 3: afsluiten
 if st.session_state.get("einde", False):
     st.markdown("---")
     st.markdown("## 👋 Bedankt voor het gesprek")
-    st.caption("Tot de volgende keer.")
+    st.caption("Tot de volgende keer.")            
