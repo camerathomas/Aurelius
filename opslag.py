@@ -111,7 +111,7 @@ def laad_profiel(gebruiker_id):
                 "laatste_incheck": json.loads(rij[2]) if rij[2] else {},
                 "themas": json.loads(rij[3]) if rij[3] else [],
                 "waarde_volgorde": json.loads(rij[4]) if rij[4] else [],
-                "sessie_duur": rij[5] if rij[5] else 25,
+                "sessie_duur": int(rij[5]) if rij[5] else 25,
             }
     except Exception:
         pass
