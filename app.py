@@ -365,6 +365,10 @@ if "einde" not in st.session_state:
     st.session_state.einde = False
 if "evaluatie_afgerond" not in st.session_state:
     st.session_state.evaluatie_afgerond = False
+if "wendingen_geweest" not in st.session_state:
+    st.session_state.wendingen_geweest = []
+if "huidige_wending_label" not in st.session_state:
+    st.session_state.huidige_wending_label = None
 
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
