@@ -573,7 +573,8 @@ if not st.session_state.geschiedenis:
     start_pantheon = bouw_pantheon_voor_sessie(
         st.session_state.profiel, is_eerste_gesprek
     )
-
+    st.session_state.pantheon = start_pantheon
+    
     # Vergelijk de incheck met de vorige
     vorige_incheck = st.session_state.profiel.get("vorige_incheck", {})
     vergelijk = vergelijk_incheck(vorige_incheck, incheck)
