@@ -26,6 +26,7 @@ from evaluatie import (
     verzamel_alle_reacties,
     bereken_leestijd,
 )
+from wendingen import kies_random_wending, moet_wending_komen
 
 # ============================================================
 # Configuratie
