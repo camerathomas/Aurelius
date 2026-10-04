@@ -842,7 +842,20 @@ if gebruiker_input:
     for b in context[:-1]:
         rol = "assistant" if b["naam"] != "Jij" else "user"
         messages.append({"role": rol, "content": b["tekst"]})
-    messages.append({"role": "user", "content": gebruiker_input})
+
+    # Als er een wending actief is, geef de instructie mee in het user-bericht
+    if drempel is not None and st.session_state.get("huidige_wending"):
+        user_content = (
+            f"{gebruiker_input}\n\n"
+            f"[INSTRUCTIE VOOR DEZE BEURT — DIT IS GEEN GEWONE BEURT]\n"
+            f"{st.session_state.huidige_wending['instructie']}\n\n"
+            f"Negeer je standaard coach-instructies voor deze ene beurt. "
+            f"Doe alleen wat hierboven staat."
+        )
+    else:
+        user_content = gebruiker_input
+
+    messages.append({"role": "user", "content": user_content})
 
     with st.spinner(f"{filosoof['naam']} denkt na..."):
         antwoord = chat(
