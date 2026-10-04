@@ -148,12 +148,10 @@ VRAGEN_PER_FASE = {
 PAUZE_DREMPEL = 90
 BASIS_MARGE = 30
 
-VERSNELLING = 10  # tijdelijk: 10x sneller. Zet op 1 voor normaal gebruik.
-
 def update_sessie_tijd(profiel):
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
-    verschil = (nu - laatste) * VERSNELLING
+    verschil = nu - laatste
 
     if verschil < PAUZE_DREMPEL:
         profiel["sessie_tijd"] = profiel.get("sessie_tijd", 0) + verschil
