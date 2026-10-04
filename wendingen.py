@@ -10,55 +10,49 @@ WENDINGEN = [
     {
         "naam": "De anekdote",
         "instructie": (
-            "[WENDING: DE ANEKDOTE]\n"
-            "Deze wending wordt gedaan door een filosoof uit het pantheon "
-            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
-            "Je ziet een patroon in wat de gebruiker heeft gezegd, en dat "
-            "herinnert je aan iets uit je eigen werk. Citeer kort uit je "
-            "eigen boek, noem de titel, en vraag of die vergelijking deels "
-            "opgaat. Gebruik maximaal 5 zinnen."
+            "Je herkent in deze beurt een patroon in de redenering van de "
+            "gebruiker — iets dat je ook beschreven hebt in je eigen werk. "
+            "Je vertelt in maximaal 3 zinnen een korte anekdote of passage "
+            "uit je eigen boek, en noemt de titel. Daarna vraag je of die "
+            "vergelijking deels opgaat voor wat de gebruiker zei. "
+            "Doe NIETS anders. Geen Socratische vraag. Geen doorvragen. "
+            "Alleen de anekdote en de vraag."
         ),
     },
     {
         "naam": "De incheckvragen",
         "instructie": (
-            "[WENDING: DE INCHECKVRAGEN]\n"
-            "Deze wending wordt gedaan door een filosoof uit het pantheon "
-            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
-            "Kijk terug op de incheck van de gebruiker (wat speelt er, "
-            "emotie, overzicht, intentie, waarde-volgorde). Stel één vraag "
-            "die direct voortkomt uit wat de gebruiker daar heeft ingevuld. "
-            "Als de overzicht-slider laag was, vraag daar dan naar. Gebruik "
-            "maximaal 4 zinnen."
+            "Je verbindt in deze beurt een van de vier waarden "
+            "(vertrouwen, respect, verbinding, analyse) met iets wat de "
+            "gebruiker zojuist heeft gezegd. Je kijkt ook naar de incheck "
+            "(wat speelt er, emotie, overzicht, intentie, waarde-volgorde). "
+            "Je stelt ÉÉN vraag die die twee met elkaar verbindt. Als de "
+            "overzicht-slider laag was, mag je daar ook naar vragen. "
+            "Doe NIETS anders. Geen Socratische vraag. Alleen deze ene vraag."
         ),
     },
     {
         "naam": "De spiegel",
         "instructie": (
-            "[WENDING: DE SPIEGEL]\n"
-            "Deze wending wordt gedaan door een filosoof uit het pantheon "
-            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
-            "Vat in één zin samen wat de gebruiker net zei, in jouw eigen "
-            "woorden, zonder oordeel. Vraag dan: 'Klopt dat?' of 'Is dat "
-            "wat je bedoelt?' Wacht op het antwoord en ga daarna verder "
-            "met één verdiepende vraag. Gebruik maximaal 4 zinnen."
+            "Je vat in deze beurt in ÉÉN zin samen wat de gebruiker net zei, "
+            "in jouw eigen woorden, zonder oordeel. Daarna vraag je: 'Klopt "
+            "dat?' of 'Is dat wat je bedoelt?' Doe NIETS anders. Geen "
+            "Socratische vraag. Geen doorvragen. Alleen de samenvatting en "
+            "de vraag."
         ),
     },
     {
         "naam": "De andere kant",
         "instructie": (
-            "[WENDING: DE ANDERE KANT]\n"
-            "Deze wending wordt gedaan door een filosoof uit het pantheon "
-            "van deze sessie, iemand die nog niet of nauwelijks sprak. "
-            "Neem het tegenovergestelde standpunt in van wat de gebruiker "
-            "net zei. Doe dit niet provocerend, maar onderzoekend: 'Stel "
-            "nu eens dat het omgekeerde waar is...' of 'Wat als je je "
-            "vergist?' Vraag de gebruiker zijn positie te verdedigen of "
-            "bij te stellen. Gebruik maximaal 4 zinnen."
+            "Je neemt in deze beurt het tegenovergestelde standpunt in van "
+            "wat de gebruiker net zei. Doe dit onderzoekend, niet "
+            "provocerend: 'Stel nu eens dat het omgekeerde waar is...' of "
+            "'Wat als je je vergist?' Vraag de gebruiker zijn positie te "
+            "verdedigen. Doe NIETS anders. Geen Socratische vraag. Alleen "
+            "het tegenovergestelde standpunt en de vraag."
         ),
     },
 ]
-
 
 def kies_random_wending():
     """Kiest een willekeurige wending uit de lijst."""
