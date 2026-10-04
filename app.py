@@ -395,10 +395,13 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
 
+
 # ============================================================
-# Incheck
+# Incheck — alleen bij de eerste sessie
 # ============================================================
-if not st.session_state.incheck_afgerond:
+is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
+
+if is_eerste_gesprek and not st.session_state.incheck_afgerond:
     st.markdown("---")
     st.markdown("### 👋 Welkom")
     st.markdown("Even een paar vragen voordat we beginnen.")
@@ -471,8 +474,6 @@ if not st.session_state.incheck_afgerond:
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
         if st.button("🚀 Start gesprek", type="primary"):
-            is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
-
             oude_incheck = st.session_state.profiel.get("laatste_incheck", {})
             if oude_incheck:
                 st.session_state.profiel["vorige_incheck"] = oude_incheck
@@ -502,6 +503,12 @@ if not st.session_state.incheck_afgerond:
             st.rerun()
 
     st.stop()
+
+else:
+    # Tweede of latere sessie: gebruik de opgeslagen incheck
+    if not st.session_state.incheck:
+        st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
+    st.session_state.incheck_afgerond = True
 
 # ============================================================
 # Gesprek
