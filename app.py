@@ -369,7 +369,9 @@ if "wendingen_geweest" not in st.session_state:
     st.session_state.wendingen_geweest = []
 if "huidige_wending_label" not in st.session_state:
     st.session_state.huidige_wending_label = None
-
+if "huidige_wending" not in st.session_state:
+    st.session_state.huidige_wending = None
+    
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
 
