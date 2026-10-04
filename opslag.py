@@ -44,6 +44,21 @@ def initialiseer():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sessies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gebruiker_id TEXT,
+            datum TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            thema TEXT,
+            incheck TEXT,
+            gesprek TEXT,
+            rondes TEXT,
+            afsluiter TEXT,
+            duur_minuten INTEGER,
+            pantheon TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -141,5 +156,133 @@ def wis_gesprek(gebruiker_id):
     conn = _krijg_verbinding()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM berichten WHERE gebruiker_id = ?", (gebruiker_id,))
+    conn.commit()
+    conn.close()
+
+
+# ============================================================
+# Archief — gearchiveerde sessies
+# ============================================================
+
+def bewaar_sessie(gebruiker_id, thema, incheck, gesprek, rondes, afsluiter,
+                  duur_minuten, pantheon):
+    """
+    Slaat een volledige sessie op in het archief.
+    Alles wat in JSON past, wordt als JSON-tekst opgeslagen.
+    """
+    conn = _krijg_verbinding()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO sessies
+        (gebruiker_id, thema, incheck, gesprek, rondes, afsluiter,
+         duur_minuten, pantheon)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        gebruiker_id,
+        thema,
+        json.dumps(incheck, ensure_ascii=False),
+        json.dumps(gesprek, ensure_ascii=False),
+        json.dumps(rondes, ensure_ascii=False),
+        json.dumps(afsluiter, ensure_ascii=False),
+        duur_minuten,
+        json.dumps(pantheon, ensure_ascii=False),
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def laad_sessies(gebruiker_id, limiet=20):
+    """
+    Laadt de laatste N gearchiveerde sessies van een gebruiker.
+    Geeft een lijst met dicts terug, gesorteerd op datum (nieuwste eerst).
+    """
+    try:
+        conn = _krijg_verbinding()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, datum, thema, incheck, gesprek, rondes, afsluiter,
+                   duur_minuten, pantheon
+            FROM sessies
+            WHERE gebruiker_id = ?
+            ORDER BY datum DESC
+            LIMIT ?
+        """, (gebruiker_id, limiet))
+
+        rijen = cursor.fetchall()
+        conn.close()
+
+        sessies = []
+        for rij in rijen:
+            sessies.append({
+                "id": rij[0],
+                "datum": rij[1],
+                "thema": rij[2],
+                "incheck": json.loads(rij[3]) if rij[3] else {},
+                "gesprek": json.loads(rij[4]) if rij[4] else [],
+                "rondes": json.loads(rij[5]) if rij[5] else {},
+                "afsluiter": json.loads(rij[6]) if rij[6] else {},
+                "duur_minuten": rij[7],
+                "pantheon": json.loads(rij[8]) if rij[8] else [],
+            })
+        return sessies
+    except Exception:
+        return []
+
+
+def laad_sessie(gebruiker_id, sessie_id):
+    """
+    Laadt één specifieke sessie op basis van het id.
+    Geeft een dict terug, of None als de sessie niet bestaat.
+    """
+    try:
+        conn = _krijg_verbinding()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, datum, thema, incheck, gesprek, rondes, afsluiter,
+                   duur_minuten, pantheon
+            FROM sessies
+            WHERE gebruiker_id = ? AND id = ?
+        """, (gebruiker_id, sessie_id))
+
+        rij = cursor.fetchone()
+        conn.close()
+
+        if not rij:
+            return None
+
+        return {
+            "id": rij[0],
+            "datum": rij[1],
+            "thema": rij[2],
+            "incheck": json.loads(rij[3]) if rij[3] else {},
+            "gesprek": json.loads(rij[4]) if rij[4] else [],
+            "rondes": json.loads(rij[5]) if rij[5] else {},
+            "afsluiter": json.loads(rij[6]) if rij[6] else {},
+            "duur_minuten": rij[7],
+            "pantheon": json.loads(rij[8]) if rij[8] else [],
+        }
+    except Exception:
+        return None
+
+
+def wis_sessie(gebruiker_id, sessie_id):
+    """Verwijdert één gearchiveerde sessie."""
+    conn = _krijg_verbinding()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM sessies WHERE gebruiker_id = ? AND id = ?",
+        (gebruiker_id, sessie_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def wis_alle_sessies(gebruiker_id):
+    """Verwijdert alle gearchiveerde sessies van een gebruiker."""
+    conn = _krijg_verbinding()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sessies WHERE gebruiker_id = ?", (gebruiker_id,))
     conn.commit()
     conn.close()
