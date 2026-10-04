@@ -790,9 +790,8 @@ if gebruiker_input:
             "Doe dit in één doorlopend bericht, geen kopjes, geen opsomming."
         )
 
-    if drempel is not None:
-        wending_tekst = kies_random_wending()
-        system_prompt += f"\n\n{wending_tekst['instructie']}"
+    if drempel is not None and st.session_state.get("huidige_wending"):
+        system_prompt += f"\n\n{st.session_state.huidige_wending['instructie']}"
 
     minuten = bereken_sessie_minuten(st.session_state.profiel)
     duur = veilige_duur(st.session_state.profiel)
