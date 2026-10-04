@@ -32,6 +32,12 @@ def initialiseer():
         )
     """)
 
+    # Voeg sessie_duur toe als de kolom nog niet bestaat
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN sessie_duur INTEGER DEFAULT 25")
+    except Exception:
+        pass  # kolom bestaat al
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS berichten (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,14 +76,16 @@ def bewaar_profiel(profiel):
 
     cursor.execute("""
         INSERT OR REPLACE INTO profielen
-        (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
+         sessie_duur, bijgewerkt)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
         json.dumps(profiel.get("laatste_incheck", {})),
         json.dumps(profiel.get("themas", [])),
         json.dumps(profiel.get("waarde_volgorde", [])),
+        profiel.get("sessie_duur", 25),
     ))
 
     conn.commit()
@@ -103,6 +111,7 @@ def laad_profiel(gebruiker_id):
                 "laatste_incheck": json.loads(rij[2]) if rij[2] else {},
                 "themas": json.loads(rij[3]) if rij[3] else [],
                 "waarde_volgorde": json.loads(rij[4]) if rij[4] else [],
+                "sessie_duur": rij[5] if rij[5] else 25,
             }
     except Exception:
         pass
@@ -113,6 +122,7 @@ def laad_profiel(gebruiker_id):
         "laatste_incheck": {},
         "themas": [],
         "waarde_volgorde": [],
+        "sessie_duur": 25,
     }
 
 
