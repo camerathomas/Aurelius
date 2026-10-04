@@ -476,7 +476,8 @@ if not st.session_state.incheck_afgerond:
             st.session_state.profiel["waarde_volgorde"] = incheck.get("volgorde", [])
 
             duur_map = {"Kort (10 min)": 10, "Standaard (25 min)": 25, "Diep (50 min)": 50}
-            st.session_state.profiel["sessie_duur"] = duur_map.get(incheck.get("duur"), 25)
+            gekozen_duur = incheck.get("duur", "")
+            st.session_state.profiel["sessie_duur"] = duur_map.get(gekozen_duur, 10)
             st.session_state.profiel["sessie_start"] = time.time()
             st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
