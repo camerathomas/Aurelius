@@ -150,9 +150,12 @@ BASIS_MARGE = 30
 
 
 def update_sessie_tijd(profiel):
+VERSNELLING = 10  # tijdelijk: 10x sneller. Zet op 1 voor normaal gebruik.
+
+def update_sessie_tijd(profiel):
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
-    verschil = nu - laatste
+    verschil = (nu - laatste) * VERSNELLING
 
     if verschil < PAUZE_DREMPEL:
         profiel["sessie_tijd"] = profiel.get("sessie_tijd", 0) + verschil
@@ -161,7 +164,6 @@ def update_sessie_tijd(profiel):
 
     profiel["laatste_bericht"] = nu
     return profiel
-
 
 def bereken_sessie_minuten(profiel):
     return profiel.get("sessie_tijd", 0) / 60
