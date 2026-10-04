@@ -74,6 +74,51 @@ except Exception as e:
     st.error(f"⚠️ **Database-fout:** {e}")
     st.stop()
 
+def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter):
+    """Slaat de sessie op in het archief in de database."""
+    gebruiker_id = st.session_state.get("huidige_gebruiker", "remco")
+    incheck = profiel.get("laatste_incheck", {})
+    duur = profiel.get("sessie_duur", 25)
+    pantheon_nu = st.session_state.get("pantheon", [])
+
+    # Bepaal het thema op basis van de incheck
+    thema = incheck.get("openheid", "")[:80] if incheck.get("openheid") else "onbekend"
+
+    try:
+        bewaar_sessie(
+            gebruiker_id=gebruiker_id,
+            thema=thema,
+            incheck=incheck,
+            gesprek=geschiedenis,
+            rondes=rondes or {},
+            afsluiter=afsluiter or {},
+            duur_minuten=duur,
+            pantheon=pantheon_nu,
+        )
+    except Exception as e:
+        st.error(f"Fout bij archiveren: {e}")
+
+
+def reset_voor_nieuwe_sessie():
+    """Reset alles behalve het profiel, zodat een nieuwe sessie kan beginnen."""
+    st.session_state.geschiedenis = []
+    st.session_state.incheck = {}
+    st.session_state.incheck_stap = 0
+    st.session_state.incheck_afgerond = False
+    st.session_state.grote_wending_geweest = False
+    st.session_state.evaluatie_gestart = False
+    st.session_state.evaluatie_context = ""
+    st.session_state.evaluatie_rondes = None
+    st.session_state.evaluatie_afsluiter = None
+    st.session_state.evaluatie_stap = 0
+    st.session_state.evaluatie_afgerond = False
+    st.session_state.archief_gevraagd = False
+    st.session_state.archief_opgeslagen = False
+    st.session_state.eind_keuze_gemaakt = False
+    st.session_state.nazit_gestart = False
+    st.session_state.einde = False
+    st.rerun()
+
 # ============================================================
 # Fasen
 # ============================================================
