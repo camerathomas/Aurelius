@@ -117,6 +117,8 @@ def reset_voor_nieuwe_sessie():
     st.session_state.eind_keuze_gemaakt = False
     st.session_state.nazit_gestart = False
     st.session_state.einde = False
+    st.session_state.wendingen_geweest = []
+    st.session_state.huidige_wending_label = None
     st.rerun()
 
 
