@@ -719,7 +719,8 @@ if gebruiker_input:
 
     elif drempel is not None:
         wending = kies_random_wending()
-
+        st.session_state.huidige_wending = wending
+        
         eerdere_filosofen = [
             b["naam"] for b in st.session_state.geschiedenis
             if b["naam"] != "Jij"
