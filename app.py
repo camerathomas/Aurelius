@@ -720,8 +720,7 @@ if gebruiker_input:
     if filosoof.get("naam") == "Socrates":
         aantal_socrates = sum(
             1 for b in st.session_state.geschiedenis
-            if b.get("naam")
-                "naam": "Socrates"
+            if b.get("naam") == "Socrates"
         )
         if aantal_socrates >= 3:
             system_prompt += (
