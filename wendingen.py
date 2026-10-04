@@ -67,8 +67,9 @@ def kies_random_wending():
 
 def moet_wending_komen(minuten, duur, al_geweest):
     """
-    Bepaalt of er nu een wending moet komen.
+    Bepaalt of er nu een random wending moet komen.
     - Om de 5 minuten sessietijd.
+    - Niet op het midden (daar komt de vaste [OVERGANGSMOMENT]).
     - Niet op het einde (dus niet op minuut == duur).
     - Niet twee keer op dezelfde drempel.
 
@@ -77,10 +78,14 @@ def moet_wending_komen(minuten, duur, al_geweest):
     if duur <= 0:
         return None
 
+    midden = duur / 2
+
     drempels = []
     teller = 5
     while teller < duur:
-        drempels.append(teller)
+        # Sla het midden over
+        if abs(teller - midden) >= 2.5:
+            drempels.append(teller)
         teller += 5
 
     for i, drempel in enumerate(drempels):
