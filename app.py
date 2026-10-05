@@ -545,7 +545,7 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
             else:
                 st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
-            st.session_state.profiel["heeft_eerder_gesproken"] = True
+            st.session_state.profiel["incheck_gedaan"] = True
 
             st.session_state.grote_wending_geweest = False
             st.session_state.evaluatie_gestart = False
@@ -565,12 +565,21 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
             st.rerun()
 
     st.stop()
-
+    if (st.session_state.profiel.get("proefsessie_geweest", False)
+        and not st.session_state.profiel.get("betaald", False)):
+    st.markdown("---")
+    st.markdown("### 💳 Betaling")
+    st.caption("Tijdelijke knop — Mollie komt later.")
+    if st.button("Ik heb betaald"):
+        st.session_state.profiel["betaald"] = True
+        bewaar_profiel(st.session_state.profiel)
+        st.rerun()
+    st.stop()
 else:
-    if not st.session_state.incheck:
-        st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
-    st.session_state.incheck_afgerond = True
-
+    if st.session_state.profiel.get("incheck_gedaan", False):
+        if not st.session_state.incheck:
+            st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
+        st.session_state.incheck_afgerond = True
 
 # ============================================================
 # Gesprek
