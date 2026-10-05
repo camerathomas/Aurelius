@@ -267,4 +267,4 @@ def bereken_leestijd(tekst):
 
     woorden = len(tekst.split())
     seconden = woorden / 3
-    return max(3, min(22, seconden))
+    return max(3, min(10, seconden))
