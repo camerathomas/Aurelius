@@ -18,7 +18,6 @@ from coach import bouw_coach_prompt, kies_filosoof, chat
 from evaluatie import (
     EVALUATIE_RONDE_1,
     EVALUATIE_RONDE_2,
-    EVALUATIE_RONDE_3,
     EVALUATIE_AFSLUITER,
     haal_reacties_op,
     bouw_context,
