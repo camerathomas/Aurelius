@@ -170,6 +170,14 @@ def kies_filosoof_met_verdeling(pantheon, voorzitter, teller):
     return max(tekort, key=tekort.get)
 
 
+def bouw_pantheon_voor_sessie(profiel):
+    """
+    Bepaalt het pantheon voor deze sessie op basis van het level.
+    """
+    huidig_level = profiel.get("level", 1)
+    return PANTHEON_PER_LEVEL.get(huidig_level, PANTHEON_PER_LEVEL.get(1, []))
+
+
 # ============================================================
 # Fasen
 # ============================================================
@@ -199,7 +207,7 @@ VRAGEN_PER_FASE = {
 # ============================================================
 PAUZE_DREMPEL = 90
 BASIS_MARGE = 30
-VERSNELLING = 20
+VERSNELLING = 1
 
 
 def update_sessie_tijd(profiel):
@@ -245,17 +253,6 @@ def check_einde_sessie(profiel):
         )
     return None
 
-
-# ============================================================
-# Bouw pantheon
-# ============================================================
-
-def bouw_pantheon_voor_sessie(profiel, is_eerste_gesprek):
-    """
-    Bepaalt het pantheon voor deze sessie op basis van het level.
-    """
-    huidig_level = profiel.get("level", 1)
-    return PANTHEON_PER_LEVEL.get(huidig_level, PANTHEON_PER_LEVEL.get(1, []))
 
 # ============================================================
 # Incheck-vragen
@@ -402,6 +399,7 @@ if "beurten_teller" not in st.session_state:
     st.session_state.beurten_teller = {}
 if "voorzitter" not in st.session_state:
     st.session_state.voorzitter = None
+
 if "welkom_geweest" not in st.session_state.profiel:
     st.session_state.profiel["welkom_geweest"] = False
 if "proefsessie_geweest" not in st.session_state.profiel:
@@ -412,7 +410,7 @@ if "betaald" not in st.session_state.profiel:
     st.session_state.profiel["betaald"] = False
 if "incheck_gedaan" not in st.session_state.profiel:
     st.session_state.profiel["incheck_gedaan"] = False
-    
+
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
 
@@ -439,7 +437,6 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
         st.session_state.incheck_stap = 0
         st.session_state.incheck_afgerond = False
 
-
 # ============================================================
 # Hoofdinterface
 # ============================================================
@@ -448,11 +445,251 @@ st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
 
 
 # ============================================================
-# Incheck — alleen bij de eerste sessie
+# Welkomstscherm
 # ============================================================
-is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
+if not st.session_state.profiel.get("welkom_geweest", False):
+    st.markdown("---")
+    st.markdown("## 🏛️ Welkom bij Aurelius")
+    st.markdown("**Marcus Aurelius:**")
+    st.markdown(
+        "Ik ben Marcus Aurelius. Ik was keizer van Rome, en ik schreef "
+        "elke dag aan mezelf — over wat ik wel en niet in de hand had, "
+        "over wat ik kon veranderen en wat ik moest laten.\n\n"
+        "Deze app is geen therapeut, geen adviseur, geen antwoordenmachine. "
+        "Het is een plek om te denken. Met filosofen die je uitnodigen om "
+        "zelf te kijken, zelf te vragen, zelf te kiezen.\n\n"
+        "Elke sessie nodigen we een pantheon van filosofen uit. Ze komen "
+        "uit verschillende tradities, en elk kijkt op een andere manier "
+        "naar wat je meebrengt. Je hoeft ze niet te kennen. Je hoeft het "
+        "niet eens te zijn. Je hoeft alleen maar te luisteren, en te "
+        "antwoorden.\n\n"
+        "Ik raad je aan om alle filosofen eens te proberen. Niet omdat ze "
+        "allemaal gelijk hebben, maar omdat elke stem je iets laat zien "
+        "dat je alleen niet zo snel zou zien.\n\n"
+        "Begin rustig. Er is geen goed of fout gesprek. Er is alleen wat "
+        "je opmerkt, en wat je ermee doet.\n\n"
+        "Welkom."
+    )
 
-if is_eerste_gesprek and not st.session_state.incheck_afgerond:
+    if st.button("Verder", type="primary"):
+        st.session_state.profiel["welkom_geweest"] = True
+        bewaar_profiel(st.session_state.profiel)
+        st.rerun()
+
+    st.stop()
+
+
+# ============================================================
+# Proefsessie — 5 minuten, level 1, Marcus Aurelius als voorzitter
+# ============================================================
+if not st.session_state.profiel.get("proefsessie_geweest", False):
+
+    st.markdown("---")
+    st.markdown("## 🕐 Proefsessie")
+    st.caption("Een korte kennismaking van 5 minuten.")
+
+    # Pantheon voor de proefsessie
+    proef_pantheon = PANTHEON_PER_LEVEL.get(1, [])
+    st.session_state.pantheon = proef_pantheon
+
+    if not st.session_state.get("voorzitter") and proef_pantheon:
+        st.session_state.voorzitter = proef_pantheon[0]
+
+    # Sessietijd instellen op 5 minuten, eenmalig
+    if not st.session_state.profiel.get("proef_gestart", False):
+        st.session_state.profiel["sessie_duur"] = 5
+        st.session_state.profiel["sessie_tijd"] = 0
+        st.session_state.profiel["sessie_start"] = time.time()
+        st.session_state.profiel["laatste_bericht"] = time.time()
+        st.session_state.profiel["proef_gestart"] = True
+        bewaar_profiel(st.session_state.profiel)
+
+    # Toon het gesprek
+    gesprek_container = st.container()
+
+    def toon_proef_bericht(naam, tekst, icoon, tijd=None):
+        with gesprek_container:
+            with st.chat_message(naam, avatar=icoon):
+                if tijd:
+                    st.markdown(f"**{naam}** · _{tijd}_")
+                else:
+                    st.markdown(f"**{naam}**")
+                st.markdown(tekst)
+
+    for b in st.session_state.geschiedenis:
+        toon_proef_bericht(b["naam"], b["tekst"], b["icoon"], b.get("tijd"))
+
+    # Eerste beurt: Marcus Aurelius stelt de openingsvraag
+    if not st.session_state.geschiedenis:
+        filosoof_naam = "marcus_aurelius"
+        filosoof = FILOSOFEN[filosoof_naam]
+
+        proef_prompt = (
+            "Dit is de PROEFSESSIE. De gebruiker heeft net het "
+            "welkomstwoord gelezen, en dit is het eerste gesprek.\n\n"
+            "Jouw taak: stel ÉÉN openingsvraag aan de gebruiker. Kies uit "
+            "deze drie vragen, of een variant daarop:\n"
+            "- 'Waar denk jij aan als je het woord filosofie hoort?'\n"
+            "- 'Wat hoop je hier te vinden?'\n"
+            "- 'Heb je eerder met filosofie te maken gehad?'\n\n"
+            "Stel er één. Kort, direct, uitnodigend."
+        )
+
+        with st.spinner(f"{filosoof['naam']} denkt na..."):
+            eerste_vraag = chat(
+                model=model_naam,
+                messages=[{"role": "user", "content": proef_prompt}],
+                system_prompt=bouw_coach_prompt(
+                    filosoof=filosoof,
+                    profiel=st.session_state.profiel,
+                    modus="Coach",
+                    fase="opening",
+                    vragen=[],
+                ),
+                provider=provider_key,
+            )
+
+        st.session_state.geschiedenis.append({
+            "naam": filosoof["naam"], "tekst": eerste_vraag,
+            "icoon": filosoof["emoji"], "tijd": datetime.now().strftime("%H:%M"),
+        })
+        try:
+            bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", eerste_vraag)
+        except Exception:
+            pass
+        st.rerun()
+
+    # Invoer van de gebruiker
+    proef_input = None
+    if not st.session_state.get("evaluatie_gestart", False):
+        proef_input = st.chat_input("Typ je antwoord...")
+
+    if proef_input:
+        tijd = datetime.now().strftime("%H:%M")
+        st.session_state.geschiedenis.append({
+            "naam": "Jij", "tekst": proef_input, "icoon": "🧑", "tijd": tijd,
+        })
+        try:
+            bewaar_bericht(gebruiker_id, "Jij", "user", proef_input)
+        except Exception:
+            pass
+
+        st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
+
+        if proef_pantheon and st.session_state.get("voorzitter"):
+            filosoof_naam = kies_filosoof_met_verdeling(
+                proef_pantheon,
+                st.session_state.voorzitter,
+                st.session_state.beurten_teller,
+            )
+        else:
+            filosoof_naam = "marcus_aurelius"
+
+        filosoof = FILOSOFEN[filosoof_naam]
+
+        system_prompt = bouw_coach_prompt(
+            filosoof=filosoof,
+            profiel=st.session_state.profiel,
+            modus="Coach",
+            fase=None,
+            vragen=[],
+        )
+
+        context = st.session_state.geschiedenis[-max_historie:]
+        messages = []
+        for b in context[:-1]:
+            rol = "assistant" if b["naam"] != "Jij" else "user"
+            messages.append({"role": rol, "content": b["tekst"]})
+        messages.append({"role": "user", "content": proef_input})
+
+        with st.spinner(f"{filosoof['naam']} denkt na..."):
+            antwoord = chat(
+                model=model_naam,
+                messages=messages,
+                system_prompt=system_prompt,
+                provider=provider_key,
+            )
+
+        tijd = datetime.now().strftime("%H:%M")
+        st.session_state.geschiedenis.append({
+            "naam": filosoof["naam"], "tekst": antwoord,
+            "icoon": filosoof["emoji"], "tijd": tijd,
+        })
+        try:
+            bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", antwoord)
+        except Exception:
+            pass
+
+        st.session_state.beurten_teller[filosoof_naam] = (
+            st.session_state.beurten_teller.get(filosoof_naam, 0) + 1
+        )
+
+        try:
+            bewaar_profiel(st.session_state.profiel)
+        except Exception:
+            pass
+
+        st.rerun()
+
+    # Einde proefsessie: evaluatie starten
+    minuten = bereken_sessie_minuten(st.session_state.profiel)
+    if (minuten >= 5
+            and not st.session_state.evaluatie_gestart
+            and st.session_state.geschiedenis):
+
+        voorzitter = st.session_state.get("voorzitter")
+        if voorzitter and voorzitter in FILOSOFEN:
+            st.session_state.evaluatie_context = bouw_context(
+                st.session_state.profiel,
+                st.session_state.geschiedenis,
+                proef_pantheon,
+            )
+            st.session_state.evaluatie_context += (
+                f"\n\n--- VOORZITTER ---\n"
+                f"De voorzitter van deze sessie is {FILOSOFEN[voorzitter]['naam']}. "
+                f"Laat de voorzitter NIET meedoen in ronde 1 en ronde 2. "
+                f"De voorzitter komt alleen terug in de afsluiter."
+            )
+            st.session_state.evaluatie_gestart = True
+            st.session_state.evaluatie_stap = 0
+            st.rerun()
+
+    st.stop()
+
+
+# ============================================================
+# Betaalmuur
+# ============================================================
+if not st.session_state.profiel.get("betaald", False):
+    st.markdown("---")
+    st.markdown("## 🕊️ Uw proeftijd is voorbij")
+    st.markdown(
+        "Uw proeftijd is voorbij. Als u verder wilt gaan, kunt u zich "
+        "aanmelden en betalen. Daarna kunt u de pdf downloaden en "
+        "verdergaan met de gesprekken."
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("### 📁 Archiveer en betaal")
+        if st.button("Ik heb betaald", type="primary"):
+            st.session_state.profiel["betaald"] = True
+            bewaar_profiel(st.session_state.profiel)
+            st.rerun()
+
+    with col2:
+        st.markdown("### 👋 Uw proeftijd is voorbij")
+        st.caption("U kunt dit tabblad sluiten. Bedankt voor het proberen.")
+
+    st.stop()
+
+
+# ============================================================
+# Incheck — eenmalig, na betaling
+# ============================================================
+if not st.session_state.profiel.get("incheck_gedaan", False):
+
     st.markdown("---")
     st.markdown("### 👋 Welkom")
     st.markdown("Even een paar vragen voordat we beginnen.")
@@ -525,10 +762,6 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
         if st.button("🚀 Start gesprek", type="primary"):
-            oude_incheck = st.session_state.profiel.get("laatste_incheck", {})
-            if oude_incheck:
-                st.session_state.profiel["vorige_incheck"] = oude_incheck
-
             st.session_state.incheck_afgerond = True
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["openheid"] = incheck.get("openheid", "")
@@ -539,10 +772,7 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
             gekozen_duur = incheck.get("duur", "")
             st.session_state.profiel["sessie_duur"] = duur_map.get(gekozen_duur, 10)
             st.session_state.profiel["sessie_start"] = time.time()
-            if gebruiker_id == "remco":
-                st.session_state.profiel["sessie_tijd"] = 55
-            else:
-                st.session_state.profiel["sessie_tijd"] = 0
+            st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
             st.session_state.profiel["incheck_gedaan"] = True
 
@@ -555,30 +785,13 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
             st.session_state.wendingen_geweest = []
             st.session_state.beurten_teller = {}
 
-            nieuw_pantheon = bouw_pantheon_voor_sessie(
-                st.session_state.profiel, True
-            )
+            nieuw_pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
             st.session_state.voorzitter = nieuw_pantheon[0] if nieuw_pantheon else "marcus_aurelius"
 
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
     st.stop()
-    if (st.session_state.profiel.get("proefsessie_geweest", False)
-        and not st.session_state.profiel.get("betaald", False)):
-    st.markdown("---")
-    st.markdown("### 💳 Betaling")
-    st.caption("Tijdelijke knop — Mollie komt later.")
-    if st.button("Ik heb betaald"):
-        st.session_state.profiel["betaald"] = True
-        bewaar_profiel(st.session_state.profiel)
-        st.rerun()
-    st.stop()
-else:
-    if st.session_state.profiel.get("incheck_gedaan", False):
-        if not st.session_state.incheck:
-            st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
-        st.session_state.incheck_afgerond = True
 
 # ============================================================
 # Gesprek
@@ -647,63 +860,27 @@ if not st.session_state.geschiedenis:
     overzicht = incheck.get("overzicht", 5)
     intentie = incheck.get("intentie", "")
     volgorde = incheck.get("volgorde", [])
-    eerste_waarde = volgorde[0] if volgorde else "Respect"
 
-    is_eerste_gesprek = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
-
-    start_pantheon = bouw_pantheon_voor_sessie(
-        st.session_state.profiel, is_eerste_gesprek
-    )
+    start_pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
     st.session_state.pantheon = start_pantheon
 
     if not st.session_state.get("voorzitter") and start_pantheon:
         st.session_state.voorzitter = start_pantheon[0]
 
-    vorige_incheck = st.session_state.profiel.get("vorige_incheck", {})
-    vergelijk = vergelijk_incheck(vorige_incheck, incheck)
+    eerste_vraag_prompt = (
+        f"De gebruiker heeft net de incheck ingevuld:\n"
+        f"- Wat speelt er: {openheid}\n"
+        f"- Emotie: {emotie}\n"
+        f"- Overzicht: {overzicht}/10\n"
+        f"- Intentie: {intentie}\n"
+        f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
+        f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
+        f"Geen herhaling van de incheck, geen samenvatting. "
+        f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
+        f"en die het gesprek opent. Kort, direct, uitnodigend."
+    )
 
-    if is_eerste_gesprek:
-        eerste_vraag_prompt = (
-            f"De gebruiker heeft net de incheck ingevuld:\n"
-            f"- Wat speelt er: {openheid}\n"
-            f"- Emotie: {emotie}\n"
-            f"- Overzicht: {overzicht}/10\n"
-            f"- Intentie: {intentie}\n"
-            f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
-            f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
-            f"Geen herhaling van de incheck, geen samenvatting. "
-            f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
-            f"en die het gesprek opent. Kort, direct, uitnodigend."
-        )
-    else:
-        vorig_overzicht = vorige_incheck.get("overzicht", 5)
-        if vorig_overzicht < 5:
-            eerste_vraag_prompt = (
-                f"Dit is de TWEEDE sessie van de gebruiker. Hij heeft net "
-                f"de app opnieuw geopend.\n\n"
-                f"Vorige sessie gaf hij zijn overzicht een {vorig_overzicht}/10. "
-                f"Dat is laag. Begin het gesprek daarover: vraag hoe het nu is, "
-                f"wat er sinds vorige keer is veranderd, en wat hij vandaag "
-                f"wil bespreken. Kort en direct."
-            )
-        else:
-            eerste_vraag_prompt = (
-                f"Dit is de TWEEDE sessie van de gebruiker. Hij heeft net "
-                f"de app opnieuw geopend.\n\n"
-                f"Stel één openingsvraag: 'Waar wil je het vandaag over hebben?' "
-                f"Of een variant daarop. Kort en direct."
-            )
-
-    if is_eerste_gesprek:
-        if start_pantheon:
-            filosoof_naam = kies_filosoof(
-                st.session_state.profiel, start_pantheon, openheid or emotie or "begin"
-            )
-        else:
-            filosoof_naam = "marcus_aurelius"
-    else:
-        filosoof_naam = st.session_state.get("voorzitter") or "marcus_aurelius"
-
+    filosoof_naam = st.session_state.get("voorzitter") or "marcus_aurelius"
     filosoof = FILOSOFEN[filosoof_naam]
 
     system_prompt = bouw_coach_prompt(
@@ -732,7 +909,6 @@ if not st.session_state.geschiedenis:
         pass
     toon_bericht(filosoof["naam"], eerste_vraag, filosoof["emoji"], datetime.now().strftime("%H:%M"))
 
-    # Teller bijwerken
     st.session_state.beurten_teller[filosoof_naam] = (
         st.session_state.beurten_teller.get(filosoof_naam, 0) + 1
     )
@@ -876,43 +1052,6 @@ if gebruiker_input:
             f"{st.session_state.huidige_wending['instructie']}"
         )
 
-    minuten = bereken_sessie_minuten(st.session_state.profiel)
-    duur = veilige_duur(st.session_state.profiel)
-    percentage = minuten / duur if duur > 0 else 0
-    mag_terugkoppelen = percentage >= 0.60
-
-    is_eerste_gesprek_huidig = not st.session_state.profiel.get("heeft_eerder_gesproken", False)
-
-    if mag_terugkoppelen and not is_eerste_gesprek_huidig:
-        WOORDEN = ["vertrouwen", "respect", "verbinding", "analyse"]
-        input_lager = gebruiker_input.lower()
-        gevonden = [w for w in WOORDEN if w in input_lager]
-
-        vorige_incheck_huidig = st.session_state.profiel.get("vorige_incheck", {})
-        oude_volgorde = vorige_incheck_huidig.get("volgorde", [])
-        nieuwe_volgorde = st.session_state.profiel.get("waarde_volgorde", [])
-
-        if gevonden:
-            system_prompt += (
-                f"\n\n[WAARDE GENOEMD]\n"
-                f"De gebruiker noemde net: {', '.join(gevonden)}.\n"
-                f"Zijn waardenvolgorde was vorige keer: {' → '.join(oude_volgorde)}\n"
-                f"Deze keer: {' → '.join(nieuwe_volgorde)}\n\n"
-                f"Overweeg of dit een natuurlijk aanknopingspunt is om terug "
-                f"te komen op zijn waarden. Forceer het niet. Maximaal 2 keer "
-                f"per gesprek."
-            )
-        else:
-            system_prompt += (
-                f"\n\n[WAARDEN VAN DE GEBRUIKER]\n"
-                f"Vorige sessie stonden zijn waarden zo:\n"
-                f"{' → '.join(oude_volgorde)}\n\n"
-                f"Overweeg, nu je in het laatste deel van de sessie zit, of "
-                f"een van deze woorden natuurlijk ter sprake komt. Als dat zo is, "
-                f"mag je er subtiel op terugkomen. Forceer het niet. Maximaal "
-                f"2 keer per gesprek."
-            )
-
     einde_check = check_einde_sessie(st.session_state.profiel)
     if einde_check:
         system_prompt += f"\n\n[EINDE SESSIE]\n{einde_check}"
@@ -968,6 +1107,7 @@ if gebruiker_input:
     except Exception:
         pass
 
+
 # ============================================================
 # AFRONDING — automatisch starten zodra de coach heeft afgesloten
 # ============================================================
@@ -1007,7 +1147,6 @@ if (fase_nu in ("afsluiten", "nazit")
     st.rerun()
 
 
-
 # ============================================================
 # EINDEVALUATIE
 # ============================================================
@@ -1016,7 +1155,6 @@ if st.session_state.evaluatie_gestart:
     st.markdown("## 🕊️ Eindgesprek")
     st.caption("De filosofen kijken terug op wat er is gezegd.")
 
-    # --- Stap A: de twee rondes ophalen ---
     if st.session_state.evaluatie_rondes is None:
         with st.spinner("De filosofen denken na..."):
             try:
@@ -1042,7 +1180,6 @@ if st.session_state.evaluatie_gestart:
             except Exception as e:
                 st.error(f"Fout bij het ophalen van de evaluatie: {e}")
 
-    # --- Stap B: de afsluiter ophalen ---
     if (st.session_state.evaluatie_rondes is not None
             and st.session_state.evaluatie_afsluiter is None):
         with st.spinner("De afsluiting wordt voorbereid..."):
@@ -1072,7 +1209,6 @@ if st.session_state.evaluatie_gestart:
             except Exception as e:
                 st.error(f"Fout bij de afsluiter: {e}")
 
-    # --- Stap C: de reacties één voor één tonen ---
     if st.session_state.evaluatie_rondes is not None:
         alle_reacties = verzamel_alle_reacties(
             st.session_state.evaluatie_rondes,
@@ -1098,8 +1234,9 @@ if st.session_state.evaluatie_gestart:
         else:
             st.session_state.evaluatie_afgerond = True
 
+
 # ============================================================
-# EINDSCHERM — twee stappen
+# EINDSCHERM
 # ============================================================
 if (st.session_state.get("evaluatie_afgerond", False)
         and not st.session_state.get("archief_gevraagd", False)):
