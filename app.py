@@ -481,28 +481,41 @@ if not st.session_state.profiel.get("welkom_geweest", False):
 
 
 # ============================================================
-# Proefsessie — 5 minuten, level 1, Marcus Aurelius als voorzitter
+# PROEFSESSIE — monoliet, los van de rest van de app
 # ============================================================
 if not st.session_state.profiel.get("proefsessie_geweest", False):
+
+    # Eigen state voor de proefsessie
+    if "proef_start_tijd" not in st.session_state:
+        st.session_state.proef_start_tijd = time.time()
+    if "proef_voorzitter" not in st.session_state:
+        st.session_state.proef_voorzitter = "marcus_aurelius"
+    if "proef_teller" not in st.session_state:
+        st.session_state.proef_teller = {}
+    if "proef_evaluatie_gestart" not in st.session_state:
+        st.session_state.proef_evaluatie_gestart = False
+    if "proef_evaluatie_rondes" not in st.session_state:
+        st.session_state.proef_evaluatie_rondes = None
+    if "proef_evaluatie_afsluiter" not in st.session_state:
+        st.session_state.proef_evaluatie_afsluiter = None
+    if "proef_evaluatie_stap" not in st.session_state:
+        st.session_state.proef_evaluatie_stap = 0
+    if "proef_evaluatie_afgerond" not in st.session_state:
+        st.session_state.proef_evaluatie_afgerond = False
+    if "proef_evaluatie_context" not in st.session_state:
+        st.session_state.proef_evaluatie_context = ""
 
     st.markdown("---")
     st.markdown("## 🕐 Proefsessie")
     st.caption("Een korte kennismaking van 5 minuten.")
 
-    # Pantheon voor de proefsessie
+    # Timer
+    verstreken = time.time() - st.session_state.proef_start_tijd
+    resterend = max(0, 300 - verstreken)
+    st.caption(f"⏳ Nog {int(resterend)} seconden")
+
+    # Pantheon
     proef_pantheon = PANTHEON_PER_LEVEL.get(1, [])
-    st.session_state.pantheon = proef_pantheon
-
-    if not st.session_state.get("voorzitter") and proef_pantheon:
-        st.session_state.voorzitter = proef_pantheon[0]
-
-    # Sessietijd instellen op 5 minuten
-    if not st.session_state.get("proef_klok_gestart", False):
-        st.session_state.profiel["sessie_duur"] = 5
-        st.session_state.profiel["sessie_tijd"] = 0
-        st.session_state.profiel["sessie_start"] = time.time()
-        st.session_state.profiel["laatste_bericht"] = time.time()
-        st.session_state.proef_klok_gestart = True
 
     # Toon het gesprek
     gesprek_container = st.container()
@@ -519,10 +532,9 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
     for b in st.session_state.geschiedenis:
         toon_proef_bericht(b["naam"], b["tekst"], b["icoon"], b.get("tijd"))
 
-    # Eerste beurt: Marcus Aurelius stelt de openingsvraag
+    # Eerste beurt
     if not st.session_state.geschiedenis:
-        filosoof_naam = "marcus_aurelius"
-        filosoof = FILOSOFEN[filosoof_naam]
+        filosoof = FILOSOFEN["marcus_aurelius"]
 
         proef_prompt = (
             "Dit is de PROEFSESSIE. De gebruiker heeft net het "
@@ -553,15 +565,11 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
             "naam": filosoof["naam"], "tekst": eerste_vraag,
             "icoon": filosoof["emoji"], "tijd": datetime.now().strftime("%H:%M"),
         })
-        try:
-            bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", eerste_vraag)
-        except Exception:
-            pass
         st.rerun()
 
     # Invoer van de gebruiker
     proef_input = None
-    if not st.session_state.get("evaluatie_gestart", False):
+    if not st.session_state.proef_evaluatie_gestart:
         proef_input = st.chat_input("Typ je antwoord...")
 
     if proef_input:
@@ -569,18 +577,12 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
         st.session_state.geschiedenis.append({
             "naam": "Jij", "tekst": proef_input, "icoon": "🧑", "tijd": tijd,
         })
-        try:
-            bewaar_bericht(gebruiker_id, "Jij", "user", proef_input)
-        except Exception:
-            pass
 
-        st.session_state.profiel = update_sessie_tijd(st.session_state.profiel)
-
-        if proef_pantheon and st.session_state.get("voorzitter"):
+        if proef_pantheon:
             filosoof_naam = kies_filosoof_met_verdeling(
                 proef_pantheon,
-                st.session_state.voorzitter,
-                st.session_state.beurten_teller,
+                st.session_state.proef_voorzitter,
+                st.session_state.proef_teller,
             )
         else:
             filosoof_naam = "marcus_aurelius"
@@ -615,28 +617,15 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
             "naam": filosoof["naam"], "tekst": antwoord,
             "icoon": filosoof["emoji"], "tijd": tijd,
         })
-        try:
-            bewaar_bericht(gebruiker_id, filosoof["naam"], "assistant", antwoord)
-        except Exception:
-            pass
 
-        st.session_state.beurten_teller[filosoof_naam] = (
-            st.session_state.beurten_teller.get(filosoof_naam, 0) + 1
+        st.session_state.proef_teller[filosoof_naam] = (
+            st.session_state.proef_teller.get(filosoof_naam, 0) + 1
         )
-
-        try:
-            bewaar_profiel(st.session_state.profiel)
-        except Exception:
-            pass
 
         st.rerun()
 
-    # Einde proefsessie: Marcus Aurelius kondigt de evaluatie aan
-    minuten = bereken_sessie_minuten(st.session_state.profiel)
-
-    if (minuten >= 5
-            and not st.session_state.get("proef_aangekondigd", False)
-            and st.session_state.geschiedenis):
+    # Na 300 seconden: evaluatie
+    if verstreken >= 300 and not st.session_state.proef_evaluatie_gestart:
 
         aankondiging = (
             "Sorry voor het abrupte einde, maar de proeftijd is om. "
@@ -648,23 +637,14 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
             "icoon": FILOSOFEN["marcus_aurelius"]["emoji"],
             "tijd": datetime.now().strftime("%H:%M"),
         })
-        try:
-            bewaar_bericht(
-                gebruiker_id, "Marcus Aurelius", "assistant", aankondiging
-            )
-        except Exception:
-            pass
 
-        st.session_state.proef_aangekondigd = True
-
-        st.session_state.evaluatie_gestart = True
-        st.session_state.evaluatie_stap = 0
-        st.session_state.evaluatie_context = bouw_context(
+        st.session_state.proef_evaluatie_gestart = True
+        st.session_state.proef_evaluatie_context = bouw_context(
             st.session_state.profiel,
             st.session_state.geschiedenis,
             proef_pantheon,
         )
-        st.session_state.evaluatie_context += (
+        st.session_state.proef_evaluatie_context += (
             "\n\n--- VOORZITTER ---\n"
             "De voorzitter van deze sessie is Marcus Aurelius. "
             "Laat Marcus Aurelius NIET meedoen in ronde 1 en ronde 2. "
@@ -672,18 +652,18 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
         )
         st.rerun()
 
-    # Toon de evaluatie
-    if st.session_state.evaluatie_gestart:
+    # Evaluatie tonen
+    if st.session_state.proef_evaluatie_gestart:
 
         st.markdown("---")
         st.markdown("## 🕊️ Eindgesprek")
         st.caption("De filosofen kijken terug op wat er is gezegd.")
 
-        # Stap A: de twee rondes ophalen
-        if st.session_state.evaluatie_rondes is None:
+        # Stap A: rondes ophalen
+        if st.session_state.proef_evaluatie_rondes is None:
             with st.spinner("De filosofen denken na..."):
                 try:
-                    context = st.session_state.evaluatie_context
+                    context = st.session_state.proef_evaluatie_context
 
                     data1 = haal_reacties_op(
                         model_naam, provider_key,
@@ -700,20 +680,20 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
                     )
                     rondes["ronde_2"] = (data2 or {}).get("reacties", [])
 
-                    st.session_state.evaluatie_rondes = rondes
+                    st.session_state.proef_evaluatie_rondes = rondes
 
                 except Exception as e:
                     st.error(f"Fout bij het ophalen van de evaluatie: {e}")
 
-        # Stap B: de afsluiter ophalen
-        if (st.session_state.evaluatie_rondes is not None
-                and st.session_state.evaluatie_afsluiter is None):
+        # Stap B: afsluiter ophalen
+        if (st.session_state.proef_evaluatie_rondes is not None
+                and st.session_state.proef_evaluatie_afsluiter is None):
             with st.spinner("De afsluiting wordt voorbereid..."):
                 try:
-                    context_afsluiter = st.session_state.evaluatie_context
+                    context_afsluiter = st.session_state.proef_evaluatie_context
                     context_afsluiter += "\n\n--- AFSLUITING DOOR ---\nMarcus Aurelius\n\n"
 
-                    for ronde_naam, reacties in st.session_state.evaluatie_rondes.items():
+                    for ronde_naam, reacties in st.session_state.proef_evaluatie_rondes.items():
                         context_afsluiter += f"\n--- {ronde_naam.upper()} ---\n"
                         for r in reacties:
                             context_afsluiter += f"{r['naam']}: {r['tekst']}\n\n"
@@ -722,21 +702,21 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
                         model_naam, provider_key,
                         EVALUATIE_AFSLUITER, context_afsluiter
                     )
-                    st.session_state.evaluatie_afsluiter = (
+                    st.session_state.proef_evaluatie_afsluiter = (
                         data_afsluiter or {}
                     ).get("afsluiter")
 
                 except Exception as e:
                     st.error(f"Fout bij de afsluiter: {e}")
 
-        # Stap C: de reacties één voor één tonen
-        if st.session_state.evaluatie_rondes is not None:
+        # Stap C: reacties tonen
+        if st.session_state.proef_evaluatie_rondes is not None:
             alle_reacties = verzamel_alle_reacties(
-                st.session_state.evaluatie_rondes,
-                st.session_state.evaluatie_afsluiter,
+                st.session_state.proef_evaluatie_rondes,
+                st.session_state.proef_evaluatie_afsluiter,
             )
 
-            stap = st.session_state.evaluatie_stap
+            stap = st.session_state.proef_evaluatie_stap
 
             for i, (ronde_label, r) in enumerate(alle_reacties):
                 if i > stap:
@@ -749,65 +729,54 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
                 volgende = alle_reacties[stap + 1][1]
                 wachttijd = bereken_leestijd(volgende.get("tekst", ""))
                 time.sleep(wachttijd)
-                st.session_state.evaluatie_stap = stap + 1
+                st.session_state.proef_evaluatie_stap = stap + 1
                 st.rerun()
 
             else:
-                st.session_state.evaluatie_afgerond = True
+                st.session_state.proef_evaluatie_afgerond = True
 
-    # Na de evaluatie: drie knoppen
-    if st.session_state.get("evaluatie_afgerond", False):
+    # Na de evaluatie: knop naar het betaalscherm
+    if st.session_state.proef_evaluatie_afgerond:
         st.markdown("---")
         st.markdown("## 🕊️ Uw proeftijd is voorbij")
         st.markdown(
             "Wilt u deze sessie archiveren, of wilt u een sessie kopen? "
-            "Of wilt u de app afsluiten?"
+            "Druk op de knop hieronder om verder te gaan."
         )
 
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            if st.button("📁 Archiveer deze sessie", type="primary"):
-                archiveer_sessie(
-                    st.session_state.profiel,
-                    st.session_state.geschiedenis,
-                    st.session_state.evaluatie_rondes,
-                    st.session_state.evaluatie_afsluiter,
-                )
-                st.session_state.profiel["archief_opgeslagen"] = True
-                st.session_state.profiel["proefsessie_geweest"] = True
-                bewaar_profiel(st.session_state.profiel)
-                st.session_state.toon_betaalscherm = True
-                st.rerun()
-
-        with col2:
-            if st.button("🛒 Ik wil een sessie kopen"):
-                st.session_state.profiel["proefsessie_geweest"] = True
-                bewaar_profiel(st.session_state.profiel)
-                st.session_state.toon_betaalscherm = True
-                st.rerun()
-
-        with col3:
-            if st.button("👋 Afsluiten"):
-                st.markdown("**U kunt dit tabblad sluiten. Bedankt voor het proberen.**")
-                st.stop()
-
-    # Betaalscherm
-    if st.session_state.get("toon_betaalscherm", False):
-        st.markdown("---")
-        st.markdown("## 💳 Betaling")
-        st.markdown(
-            "Bedankt voor het proberen. Om verder te gaan, kunt u een "
-            "sessie kopen. Druk op de knop hieronder om door te gaan."
-        )
-
-        if st.button("Ik heb betaald", type="primary"):
-            st.session_state.profiel["betaald"] = True
+        if st.button("📁 Archiveer deze sessie", type="primary"):
+            archiveer_sessie(
+                st.session_state.profiel,
+                st.session_state.geschiedenis,
+                st.session_state.proef_evaluatie_rondes,
+                st.session_state.proef_evaluatie_afsluiter,
+            )
+            st.session_state.profiel["proefsessie_geweest"] = True
+            st.session_state.profiel["archief_opgeslagen"] = True
             bewaar_profiel(st.session_state.profiel)
-            st.session_state.toon_betaalscherm = False
+            st.session_state.toon_betaalscherm = True
             st.rerun()
 
-        st.stop()
+    st.stop()
+
+
+# ============================================================
+# BETAALSCHERM
+# ============================================================
+if st.session_state.get("toon_betaalscherm", False):
+
+    st.markdown("---")
+    st.markdown("## 💳 Betaling")
+    st.markdown(
+        "Bedankt voor het proberen. Om verder te gaan, kunt u een "
+        "sessie kopen. Druk op de knop hieronder om door te gaan."
+    )
+
+    if st.button("Ik heb betaald", type="primary"):
+        st.session_state.profiel["betaald"] = True
+        st.session_state.toon_betaalscherm = False
+        bewaar_profiel(st.session_state.profiel)
+        st.rerun()
 
     st.stop()
 # ============================================================
