@@ -413,7 +413,17 @@ if "beurten_teller" not in st.session_state:
     st.session_state.beurten_teller = {}
 if "voorzitter" not in st.session_state:
     st.session_state.voorzitter = None
-
+if "welkom_geweest" not in st.session_state.profiel:
+    st.session_state.profiel["welkom_geweest"] = False
+if "proefsessie_geweest" not in st.session_state.profiel:
+    st.session_state.profiel["proefsessie_geweest"] = False
+if "proef_gestart" not in st.session_state.profiel:
+    st.session_state.profiel["proef_gestart"] = False
+if "betaald" not in st.session_state.profiel:
+    st.session_state.profiel["betaald"] = False
+if "incheck_gedaan" not in st.session_state.profiel:
+    st.session_state.profiel["incheck_gedaan"] = False
+    
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
 
