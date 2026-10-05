@@ -399,6 +399,8 @@ if "beurten_teller" not in st.session_state:
     st.session_state.beurten_teller = {}
 if "voorzitter" not in st.session_state:
     st.session_state.voorzitter = None
+if "eerste_gesprek_gestart" not in st.session_state:
+    st.session_state.eerste_gesprek_gestart = False
 
 if "welkom_geweest" not in st.session_state.profiel:
     st.session_state.profiel["welkom_geweest"] = False
