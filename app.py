@@ -865,7 +865,7 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = incheck.get("volgorde", [])
 
-            duur_map = {"Kort (10 min)": 10, "Standaard (20 min)": 20, "Diep (30 min)": 30}
+            duur_map = {"Flitsgesprek (5 min)": 5, "Kort (10 min)": 10, "Standaard (20 min)": 20, "Diep (30 min)": 30}
             gekozen_duur = incheck.get("duur", "")
             st.session_state.profiel["sessie_duur"] = duur_map.get(gekozen_duur, 10)
             st.session_state.profiel["sessie_start"] = time.time()
