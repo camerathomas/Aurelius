@@ -4,6 +4,7 @@ Ondersteunt Ollama (lokaal) en Gemini (online).
 """
 
 import os
+import time
 import requests
 
 # ============================================================
@@ -20,17 +21,14 @@ def _laad_gemini_key():
     2. Op de root van secrets (oude locatie)
     3. In omgevingsvariabelen
     """
-    # Probeer Streamlit secrets
     try:
         import streamlit as st
 
-        # 1. Nieuwe locatie: onder connections.aurelius
         try:
             return st.secrets["connections"]["aurelius"]["GEMINI_API_KEY"]
         except (KeyError, Exception):
             pass
 
-        # 2. Oude locatie: op de root
         try:
             return st.secrets["GEMINI_API_KEY"]
         except (KeyError, Exception):
@@ -38,7 +36,6 @@ def _laad_gemini_key():
     except Exception:
         pass
 
-    # 3. Fallback: omgevingsvariabele
     return os.environ.get("GEMINI_API_KEY", "")
 
 
@@ -75,13 +72,16 @@ def chat_ollama(model, messages, system_prompt=None, temperature=0.8, timeout=24
 # ============================================================
 # Gemini
 # ============================================================
-import time
-
-def chat_gemini(model, messages, system_prompt=None, temperature=0.8, retries=3):
-    """Stuurt een chatverzoek naar Gemini, met retry bij 503."""
+def chat_gemini(model, messages, system_prompt=None, temperature=0.8, retries=4):
+    """
+    Stuurt een chatverzoek naar Gemini, met retry bij 500 en 503.
+    Wacht steeds langer tussen de pogingen.
+    """
     api_key = _laad_gemini_key()
     if not api_key:
         return "⚠️ Geen Gemini API-sleutel gevonden."
+
+    laatste_fout = None
 
     for poging in range(retries):
         try:
@@ -111,11 +111,22 @@ def chat_gemini(model, messages, system_prompt=None, temperature=0.8, retries=3)
             return response.text
 
         except Exception as e:
+            laatste_fout = e
             fout = str(e)
-            if "503" in fout and poging < retries - 1:
-                time.sleep(3)
-                continue
+
+            # 500, 503 en interne fouten: opnieuw proberen
+            if ("500" in fout or "503" in fout or "INTERNAL" in fout
+                    or "overloaded" in fout.lower()):
+                if poging < retries - 1:
+                    # Exponentiële wachttijd: 2, 4, 8 seconden
+                    time.sleep(2 ** (poging + 1))
+                    continue
+
+            # Andere fouten: meteen terugkeren
             return f"⚠️ Gemini fout: {e}"
+
+    # Alle pogingen mislukt
+    return f"⚠️ Gemini fout: {laatste_fout}"
 
 
 # ============================================================
@@ -182,10 +193,11 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
             "\n\n[AFSLUITING]\n"
             "De tijd is bijna op. Rond het gesprek af met een "
             "concluderende gedachte, geen afscheid. De andere filosofen "
-            "worden uitgenodigd hun beschouwing te geven ."
+            "worden uitgenodigd hun beschouwing te geven."
         )
 
     return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}{doel_blok}"
+
 
 # ============================================================
 # Filosoof kiezen
@@ -196,12 +208,10 @@ def kies_filosoof(profiel, pantheon, gebruikers_input):
 
     invoer = gebruikers_input.lower()
 
-    # Zoek een filosoof wiens thema's matchen
     for naam in pantheon:
         filosoof = FILOSOFEN[naam]
         for thema in filosoof.get("themas", []):
             if thema in invoer:
                 return naam
 
-    # Fallback: eerste uit het pantheon
     return pantheon[0] if pantheon else "aurelius"
