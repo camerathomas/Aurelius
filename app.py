@@ -497,7 +497,7 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
     # Sessietijd instellen op 5 minuten
     if not st.session_state.get("proef_klok_gestart", False):
-        st.session_state.profiel["sessie_duur"] = 5
+        st.session_state.profiel["sessie_duur"] = 2
         st.session_state.profiel["sessie_tijd"] = 0
         st.session_state.profiel["sessie_start"] = time.time()
         st.session_state.profiel["laatste_bericht"] = time.time()
@@ -630,12 +630,31 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
         st.rerun()
 
-    # Einde proefsessie: evaluatie starten
+    # Einde proefsessie: Marcus Aurelius kondigt de evaluatie aan
     minuten = bereken_sessie_minuten(st.session_state.profiel)
 
     if (minuten >= 5
-            and not st.session_state.evaluatie_gestart
+            and not st.session_state.get("proef_aangekondigd", False)
             and st.session_state.geschiedenis):
+
+        aankondiging = (
+            "Sorry voor het abrupte einde, maar de proeftijd is om. "
+            "Nu volgt het evaluatiegesprek."
+        )
+        st.session_state.geschiedenis.append({
+            "naam": "Marcus Aurelius",
+            "tekst": aankondiging,
+            "icoon": FILOSOFEN["marcus_aurelius"]["emoji"],
+            "tijd": datetime.now().strftime("%H:%M"),
+        })
+        try:
+            bewaar_bericht(
+                gebruiker_id, "Marcus Aurelius", "assistant", aankondiging
+            )
+        except Exception:
+            pass
+
+        st.session_state.proef_aangekondigd = True
 
         st.session_state.evaluatie_gestart = True
         st.session_state.evaluatie_stap = 0
@@ -733,67 +752,63 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
                 st.rerun()
 
             else:
-                # Alles is getoond: proefsessie afronden
-                st.session_state.profiel["proefsessie_geweest"] = True
-                bewaar_profiel(st.session_state.profiel)
-                st.rerun()
+                st.session_state.evaluatie_afgerond = True
 
-    # Proeftijd voorbij: tekst en knoppen onderaan het gesprek
-    if st.session_state.profiel.get("proefsessie_geweest", False):
+    # Na de evaluatie: drie knoppen
+    if st.session_state.get("evaluatie_afgerond", False):
         st.markdown("---")
         st.markdown("## 🕊️ Uw proeftijd is voorbij")
         st.markdown(
-            "Wilt u deze sessie archiveren? Druk dan op archiveren, "
-            "voer uw gegevens in en betaal, dan kunt u de pdf downloaden."
+            "Wilt u deze sessie archiveren, of wilt u een sessie kopen? "
+            "Of wilt u de app afsluiten?"
         )
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             if st.button("📁 Archiveer deze sessie", type="primary"):
-                st.session_state.profiel["archief_gevraagd"] = True
+                archiveer_sessie(
+                    st.session_state.profiel,
+                    st.session_state.geschiedenis,
+                    st.session_state.evaluatie_rondes,
+                    st.session_state.evaluatie_afsluiter,
+                )
+                st.session_state.profiel["archief_opgeslagen"] = True
+                st.session_state.profiel["proefsessie_geweest"] = True
                 bewaar_profiel(st.session_state.profiel)
+                st.session_state.toon_betaalscherm = True
                 st.rerun()
 
         with col2:
-            st.markdown("**Uw proeftijd is voorbij.**")
-            st.caption("U kunt dit tabblad sluiten. Bedankt voor het proberen.")
+            if st.button("🛒 Ik wil een sessie kopen"):
+                st.session_state.profiel["proefsessie_geweest"] = True
+                bewaar_profiel(st.session_state.profiel)
+                st.session_state.toon_betaalscherm = True
+                st.rerun()
 
-        st.stop()
+        with col3:
+            if st.button("👋 Afsluiten"):
+                st.markdown("**U kunt dit tabblad sluiten. Bedankt voor het proberen.**")
+                st.stop()
 
     # Betaalscherm
-    if (st.session_state.profiel.get("archief_gevraagd", False)
-            and not st.session_state.profiel.get("betaald", False)):
+    if st.session_state.get("toon_betaalscherm", False):
         st.markdown("---")
         st.markdown("## 💳 Betaling")
         st.markdown(
-            "Voer uw gegevens in en betaal om de sessie te archiveren "
-            "en de pdf te downloaden."
+            "Bedankt voor het proberen. Om verder te gaan, kunt u een "
+            "sessie kopen. Druk op de knop hieronder om door te gaan."
         )
 
-        with st.form("betaal_formulier"):
-            naam = st.text_input("Naam")
-            email = st.text_input("E-mail")
-            verstuur = st.form_submit_button("Betaal")
-
-        if verstuur and naam and email:
-            # Sla de proefsessie op
-            archiveer_sessie(
-                st.session_state.profiel,
-                st.session_state.geschiedenis,
-                st.session_state.evaluatie_rondes,
-                st.session_state.evaluatie_afsluiter,
-            )
+        if st.button("Ik heb betaald", type="primary"):
             st.session_state.profiel["betaald"] = True
             bewaar_profiel(st.session_state.profiel)
+            st.session_state.toon_betaalscherm = False
             st.rerun()
 
         st.stop()
 
-    # Als de proefsessie nog niet klaar is: stop hier
-    if not st.session_state.profiel.get("betaald", False):
-        st.stop()
-
+    st.stop()
 # ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
