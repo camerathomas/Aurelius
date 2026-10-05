@@ -128,6 +128,9 @@ def reset_voor_nieuwe_sessie():
     st.session_state.huidige_wending = None
     st.session_state.beurten_teller = {}
     st.session_state.voorzitter = None
+    st.session_state.profiel["sessie_tijd"] = 0
+    st.session_state.profiel["sessie_start"] = time.time()
+    st.session_state.profiel["laatste_bericht"] = time.time()
     st.rerun()
 
 
