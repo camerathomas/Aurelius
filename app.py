@@ -886,6 +886,25 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.rerun()
 
     st.stop()
+# ============================================================
+# Reset voor het eerste gesprek
+# ============================================================
+if st.session_state.profiel.get("incheck_gedaan", False):
+    st.session_state.geschiedenis = []
+    st.session_state.wendingen_geweest = []
+    st.session_state.grote_wending_geweest = False
+    st.session_state.beurten_teller = {}
+    st.session_state.evaluatie_gestart = False
+    st.session_state.evaluatie_rondes = None
+    st.session_state.evaluatie_afsluiter = None
+    st.session_state.evaluatie_stap = 0
+    st.session_state.evaluatie_afgerond = False
+    st.session_state.evaluatie_context = ""
+
+    start_pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
+    st.session_state.pantheon = start_pantheon
+    if start_pantheon:
+        st.session_state.voorzitter = start_pantheon[0]
 
 # ============================================================
 # Gesprek
