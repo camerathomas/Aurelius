@@ -538,7 +538,10 @@ if is_eerste_gesprek and not st.session_state.incheck_afgerond:
             gekozen_duur = incheck.get("duur", "")
             st.session_state.profiel["sessie_duur"] = duur_map.get(gekozen_duur, 10)
             st.session_state.profiel["sessie_start"] = time.time()
-            st.session_state.profiel["sessie_tijd"] = 0
+            if gebruiker_id == "remco":
+                st.session_state.profiel["sessie_tijd"] = 55
+            else:
+                st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
             st.session_state.profiel["heeft_eerder_gesproken"] = True
 
