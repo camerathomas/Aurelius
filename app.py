@@ -889,7 +889,11 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
 # ============================================================
 # Reset voor het eerste gesprek
 # ============================================================
-if st.session_state.profiel.get("incheck_gedaan", False):
+if (st.session_state.profiel.get("incheck_gedaan", False)
+        and not st.session_state.get("eerste_gesprek_gestart", False)):
+
+    st.session_state.eerste_gesprek_gestart = True
+
     st.session_state.geschiedenis = []
     st.session_state.wendingen_geweest = []
     st.session_state.grote_wending_geweest = False
