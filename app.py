@@ -987,6 +987,7 @@ if (fase_nu in ("afsluiten", "nazit")
     st.rerun()
 
 
+
 # ============================================================
 # EINDEVALUATIE
 # ============================================================
@@ -995,6 +996,7 @@ if st.session_state.evaluatie_gestart:
     st.markdown("## 🕊️ Eindgesprek")
     st.caption("De filosofen kijken terug op wat er is gezegd.")
 
+    # --- Stap A: de twee rondes ophalen ---
     if st.session_state.evaluatie_rondes is None:
         with st.spinner("De filosofen denken na..."):
             try:
@@ -1015,28 +1017,24 @@ if st.session_state.evaluatie_gestart:
                 )
                 rondes["ronde_2"] = (data2 or {}).get("reacties", [])
 
-                context3 = context + "\n\n--- RONDE 2 ---\n"
-                for r in rondes["ronde_2"]:
-                    context3 += f"{r['naam']}: {r['tekst']}\n\n"
-                data3 = haal_reacties_op(
-                    model_naam, provider_key,
-                    EVALUATIE_RONDE_3, context3
-                )
-                rondes["ronde_3"] = (data3 or {}).get("reacties", [])
-
                 st.session_state.evaluatie_rondes = rondes
 
             except Exception as e:
                 st.error(f"Fout bij het ophalen van de evaluatie: {e}")
 
+    # --- Stap B: de afsluiter ophalen ---
     if (st.session_state.evaluatie_rondes is not None
             and st.session_state.evaluatie_afsluiter is None):
         with st.spinner("De afsluiting wordt voorbereid..."):
             try:
-                meest = bepaal_meest_gesproken(st.session_state.geschiedenis) or "Socrates"
+                voorzitter = st.session_state.get("voorzitter")
+                if voorzitter and voorzitter in FILOSOFEN:
+                    meest = FILOSOFEN[voorzitter]["naam"]
+                else:
+                    meest = bepaal_meest_gesproken(st.session_state.geschiedenis) or "Socrates"
 
                 context_afsluiter = st.session_state.evaluatie_context
-                context_afsluiter += f"\n\n--- MEEST GESPROKEN ---\n{meest}\n\n"
+                context_afsluiter += f"\n\n--- AFSLUITING DOOR ---\n{meest}\n\n"
 
                 for ronde_naam, reacties in st.session_state.evaluatie_rondes.items():
                     context_afsluiter += f"\n--- {ronde_naam.upper()} ---\n"
@@ -1054,6 +1052,7 @@ if st.session_state.evaluatie_gestart:
             except Exception as e:
                 st.error(f"Fout bij de afsluiter: {e}")
 
+    # --- Stap C: de reacties één voor één tonen ---
     if st.session_state.evaluatie_rondes is not None:
         alle_reacties = verzamel_alle_reacties(
             st.session_state.evaluatie_rondes,
@@ -1078,7 +1077,6 @@ if st.session_state.evaluatie_gestart:
 
         else:
             st.session_state.evaluatie_afgerond = True
-
 
 # ============================================================
 # EINDSCHERM — twee stappen
