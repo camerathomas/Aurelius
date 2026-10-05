@@ -272,7 +272,7 @@ INCHECK_VRAGEN = [
     {"sleutel": "volgorde", "vraag": "Zet deze vier op volgorde van belangrijkheid.",
      "type": "sorteren", "opties": ["Respect", "Vertrouwen", "Verbinding", "Analyse"]},
     {"sleutel": "duur", "vraag": "Hoe lang heb je?", "type": "keuze",
-     "opties": ["Kort (10 min)", "Standaard (20 min)", "Diep (30 min)"]},
+     "opties": ["Flitsgesprek (5 min)", "Kort (10 min)", "Standaard (20 min)", "Diep (30 min)"]},
     {"sleutel": "modus", "vraag": "Wie wil je spreken?", "type": "keuze",
      "opties": ["Automatisch — de coach kiest", "Zelf kiezen", "Verrassen"]},
 ]
