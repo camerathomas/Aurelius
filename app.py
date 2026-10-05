@@ -984,6 +984,16 @@ if (fase_nu in ("afsluiten", "nazit")
         st.session_state.geschiedenis,
         pantheon,
     )
+
+    voorzitter = st.session_state.get("voorzitter")
+    if voorzitter and voorzitter in FILOSOFEN:
+        st.session_state.evaluatie_context += (
+            f"\n\n--- VOORZITTER ---\n"
+            f"De voorzitter van deze sessie is {FILOSOFEN[voorzitter]['naam']}. "
+            f"Laat de voorzitter NIET meedoen in ronde 1 en ronde 2. "
+            f"De voorzitter komt alleen terug in de afsluiter."
+        )
+
     st.rerun()
 
 
