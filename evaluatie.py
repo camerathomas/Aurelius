@@ -20,7 +20,6 @@ EVALUATIE_RONDE_1 = """
 Je bent de regisseur van een filosofisch eindgesprek.
 
 Je krijgt zo:
-1. De incheck van de gebruiker.
 2. Het hele gesprek tussen de gebruiker en de coach.
 3. Het pantheon: de filosofen die meedoen.
 
@@ -29,18 +28,17 @@ Laat elke filosoof in het pantheon reageren op wat de gebruiker heeft gezegd.
 Dit is de EERSTE ronde. Elke filosoof reageert op de gebruiker, nog niet op
 elkaar.
 
+BELANGRIJK:
+- De voorzitter van deze sessie doet NIET mee in deze ronde. 
+  De voorzitter staat genoemd in de context onder --- VOORZITTER ---.
+- Laat de andere filosofen reageren op wat de gebruiker heeft gezegd.
+
 REGELS:
 - Maximaal 3-4 zinnen per filosoof.
 - In de stem en stijl van elke filosoof.
 - Geen herhaling van wat al in het gesprek is gezegd.
 - Elke filosoof heeft een eigen invalshoek.
 - Geen therapeutisch, juridisch of financieel advies.
-
-BELANGRIJK:
-- Socrates doet NIET mee in deze ronde. Hij heeft net het gesprek
-  afgesloten met een concluderende gedachte. De andere filosofen
-  reageren op de gebruiker.
-- Begin met de filosofen die nog niet of nauwelijks aan het woord waren.
 
 Sluit af met een JSON-blok tussen === JSON === en === EINDE JSON ===:
 
@@ -63,9 +61,8 @@ EVALUATIE_RONDE_2 = """
 Je bent de regisseur van een filosofisch eindgesprek.
 
 Je krijgt zo:
-1. De incheck van de gebruiker.
-2. Het hele gesprek.
-3. De reacties uit de EERSTE ronde.
+1. De reacties uit de EERSTE ronde.
+2. De laatste reacties uit het gesprek.
 
 JOUW TAAK:
 Laat elke filosoof reageren op wat de ANDERE filosofen in de eerste ronde
