@@ -233,13 +233,10 @@ def bepaal_meest_gesproken(geschiedenis):
 
     return max(tel, key=tel.get)
 
-
 def verzamel_alle_reacties(rondes, afsluiter=None):
     """
     Zet alle reacties in één lijst, in de juiste volgorde:
-    ronde 1, ronde 2, ronde 3, afsluiter.
-
-    Geeft een lijst tuples terug: (ronde_label, reactie_dict).
+    ronde 1, ronde 2, afsluiter.
     """
     alle = []
 
@@ -247,13 +244,12 @@ def verzamel_alle_reacties(rondes, afsluiter=None):
         alle.append(("Ronde 1", r))
     for r in rondes.get("ronde_2", []):
         alle.append(("Ronde 2", r))
-    for r in rondes.get("ronde_3", []):
-        alle.append(("Ronde 3", r))
 
     if afsluiter:
         alle.append(("Afsluiting", afsluiter))
 
     return alle
+
 
 
 def bereken_leestijd(tekst):
