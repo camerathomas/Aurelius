@@ -654,7 +654,8 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
             st.session_state.evaluatie_stap = 0
             st.rerun()
 
-    st.stop()
+    if not st.session_state.get("evaluatie_gestart", False):
+        st.stop()
 
 
 # ============================================================
