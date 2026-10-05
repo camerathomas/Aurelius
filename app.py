@@ -197,7 +197,7 @@ VRAGEN_PER_FASE = {
 # ============================================================
 PAUZE_DREMPEL = 90
 BASIS_MARGE = 30
-VERSNELLING = 1
+VERSNELLING = 20
 
 
 def update_sessie_tijd(profiel):
