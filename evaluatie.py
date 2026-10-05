@@ -2,10 +2,12 @@
 evaluatie.py — het eindgesprek van de filosofen.
 
 Dit bestand bevat:
-- De vier prompts (ronde 1, 2, 3 en de afsluiter).
+- De prompts (ronde 1, ronde 2 en de afsluiter).
 - De functie haal_reacties_op() die de AI aanroept en de JSON parseert.
 - De functie bouw_context() die de context-string voor de prompts maakt.
 - De functie bepaal_meest_gesproken() die uitzoekt wie het meest sprak.
+- De functie verzamel_alle_reacties() die alles in de juiste volgorde zet.
+- De functie bereken_leestijd() die de leestijd per reactie bepaalt.
 """
 
 import json
@@ -20,8 +22,8 @@ EVALUATIE_RONDE_1 = """
 Je bent de regisseur van een filosofisch eindgesprek.
 
 Je krijgt zo:
-2. Het hele gesprek tussen de gebruiker en de coach.
-3. Het pantheon: de filosofen die meedoen.
+1. De laatste berichten van het gesprek.
+2. Het pantheon: de filosofen die meedoen.
 
 JOUW TAAK:
 Laat elke filosoof in het pantheon reageren op wat de gebruiker heeft gezegd.
@@ -68,6 +70,10 @@ JOUW TAAK:
 Laat elke filosoof reageren op wat de ANDERE filosofen in de eerste ronde
 hebben gezegd. Dit is de TWEEDE ronde.
 
+BELANGRIJK:
+- De voorzitter doet NIET mee in deze ronde.
+- Laat de andere filosofen reageren op wat in ronde 1 is gezegd.
+
 REGELS:
 - Maximaal 3 zinnen per filosoof.
 - Ze mogen het oneens zijn, aanvullen, tegenspreken, of een nieuw
@@ -91,50 +97,13 @@ Sluit af met een JSON-blok tussen === JSON === en === EINDE JSON ===:
 """
 
 
-EVALUATIE_RONDE_3 = """
-Je bent de regisseur van een filosofisch eindgesprek.
-
-Je krijgt zo:
-1. De incheck van de gebruiker.
-2. Het hele gesprek.
-3. De reacties uit de TWEEDE ronde.
-
-JOUW TAAK:
-Laat elke filosoof reageren op wat in de TWEEDE ronde is gezegd.
-Dit is de DERDE en laatste ronde.
-
-REGELS:
-- Maximaal 3 zinnen per filosoof.
-- Ze mogen het oneens zijn, aanvullen, tegenspreken, of een nieuw
-  perspectief toevoegen.
-- Ze mogen ook terugkijken op wat er in de eerste en tweede ronde is gezegd.
-- In de stem en stijl van elke filosoof.
-- Geen herhaling.
-- Geen therapeutisch, juridisch of financieel advies.
-
-Sluit af met een JSON-blok tussen === JSON === en === EINDE JSON ===:
-
-{
-  "reacties": [
-    {
-      "filosoof": "socrates",
-      "naam": "Socrates",
-      "emoji": "🏛️",
-      "tekst": "..."
-    }
-  ]
-}
-"""
-
-
 EVALUATIE_AFSLUITER = """
 Je bent de regisseur van een filosofisch eindgesprek.
 
 Je krijgt zo:
-1. De incheck van de gebruiker.
-2. Het hele gesprek.
-3. Alle drie de rondes van het eindgesprek.
-4. De naam van de filosoof die in het gesprek het meest aan het woord was.
+1. De laatste berichten van het gesprek.
+2. De twee rondes van het eindgesprek.
+3. De naam van de filosoof die de afsluiting doet.
 
 JOUW TAAK:
 Laat die filosoof een afsluitend woord spreken. 4-6 zinnen.
@@ -190,20 +159,11 @@ def haal_reacties_op(model, provider_key, prompt, context):
 def bouw_context(profiel, geschiedenis, pantheon, extra=""):
     """
     Bouwt de context-string die aan de evaluatie-prompts wordt meegegeven.
+    Zonder incheck. Alleen de laatste 12 berichten van het gesprek.
     """
-    incheck = profiel.get("laatste_incheck", {})
+    context = "--- GESPREK (laatste 12 berichten) ---\n"
 
-    context = (
-        f"--- INCHECK ---\n"
-        f"Wat speelt er: {incheck.get('openheid', '')}\n"
-        f"Emotie: {incheck.get('emotie', '')}\n"
-        f"Overzicht: {incheck.get('overzicht', '')}/10\n"
-        f"Intentie: {incheck.get('intentie', '')}\n"
-        f"Volgorde: {' → '.join(incheck.get('volgorde', []))}\n\n"
-        f"--- GESPREK ---\n"
-    )
-
-    for b in geschiedenis:
+    for b in geschiedenis[-12:]:
         rol = "Gebruiker" if b["naam"] == "Jij" else b["naam"]
         context += f"{rol}: {b['tekst']}\n\n"
 
@@ -230,6 +190,7 @@ def bepaal_meest_gesproken(geschiedenis):
 
     return max(tel, key=tel.get)
 
+
 def verzamel_alle_reacties(rondes, afsluiter=None):
     """
     Zet alle reacties in één lijst, in de juiste volgorde:
@@ -248,12 +209,11 @@ def verzamel_alle_reacties(rondes, afsluiter=None):
     return alle
 
 
-
 def bereken_leestijd(tekst):
     """
     Berekent een redelijke leestijd in seconden voor een tekst.
     Uitgangspunt: 200 woorden per minuut, dus ~3 woorden per seconde.
-    Met een minimum van 3 seconden en een maximum van 30 seconden.
+    Met een minimum van 3 seconden en een maximum van 10 seconden.
     """
     if not tekst:
         return 3
