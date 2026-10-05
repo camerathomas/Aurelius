@@ -247,19 +247,8 @@ def check_einde_sessie(profiel):
 
 
 # ============================================================
-# Tweede sessie — vergelijking van de incheck
+# Bouw pantheon
 # ============================================================
-def vergelijk_incheck(oud, nieuw):
-    """Vergelijkt twee inchecks en geeft een dict met verschillen."""
-    oude_volgorde = oud.get("volgorde", [])
-    nieuwe_volgorde = nieuw.get("volgorde", [])
-    return {
-        "volgorde_gelijk": oude_volgorde == nieuwe_volgorde,
-        "oude_volgorde": oude_volgorde,
-        "nieuwe_volgorde": nieuwe_volgorde,
-        "eerste_keer": not oude_volgorde,
-    }
-
 
 def bouw_pantheon_voor_sessie(profiel, is_eerste_gesprek):
     """
