@@ -442,7 +442,8 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
 # ============================================================
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
-
+st.write("sessie_tijd:", st.session_state.profiel.get("sessie_tijd", 0))
+st.write("sessie_duur:", st.session_state.profiel.get("sessie_duur", 0))
 
 # ============================================================
 # Welkomstscherm
