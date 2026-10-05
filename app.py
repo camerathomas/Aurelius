@@ -497,7 +497,7 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
     # Sessietijd instellen op 5 minuten
     if not st.session_state.get("proef_klok_gestart", False):
-        st.session_state.profiel["sessie_duur"] = 5
+        st.session_state.profiel["sessie_duur"] = 2
         st.session_state.profiel["sessie_tijd"] = 0
         st.session_state.profiel["sessie_start"] = time.time()
         st.session_state.profiel["laatste_bericht"] = time.time()
