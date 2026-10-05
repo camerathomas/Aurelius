@@ -795,34 +795,6 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
         st.stop()
 
 # ============================================================
-# Betaalmuur
-# ============================================================
-if not st.session_state.profiel.get("betaald", False):
-    st.markdown("---")
-    st.markdown("## 🕊️ Uw proeftijd is voorbij")
-    st.markdown(
-        "Uw proeftijd is voorbij. Als u verder wilt gaan, kunt u zich "
-        "aanmelden en betalen. Daarna kunt u de pdf downloaden en "
-        "verdergaan met de gesprekken."
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("### 📁 Archiveer en betaal")
-        if st.button("Ik heb betaald", type="primary"):
-            st.session_state.profiel["betaald"] = True
-            bewaar_profiel(st.session_state.profiel)
-            st.rerun()
-
-    with col2:
-        st.markdown("### 👋 Uw proeftijd is voorbij")
-        st.caption("U kunt dit tabblad sluiten. Bedankt voor het proberen.")
-
-    st.stop()
-
-
-# ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
 if not st.session_state.profiel.get("incheck_gedaan", False):
