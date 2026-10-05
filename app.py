@@ -633,30 +633,113 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
     # Einde proefsessie: evaluatie starten
     minuten = bereken_sessie_minuten(st.session_state.profiel)
+
     if (minuten >= 5
             and not st.session_state.evaluatie_gestart
             and st.session_state.geschiedenis):
 
-        voorzitter = st.session_state.get("voorzitter")
-        if voorzitter and voorzitter in FILOSOFEN:
-            st.session_state.evaluatie_context = bouw_context(
-                st.session_state.profiel,
-                st.session_state.geschiedenis,
-                proef_pantheon,
-            )
-            st.session_state.evaluatie_context += (
-                f"\n\n--- VOORZITTER ---\n"
-                f"De voorzitter van deze sessie is {FILOSOFEN[voorzitter]['naam']}. "
-                f"Laat de voorzitter NIET meedoen in ronde 1 en ronde 2. "
-                f"De voorzitter komt alleen terug in de afsluiter."
-            )
-            st.session_state.evaluatie_gestart = True
-            st.session_state.evaluatie_stap = 0
-            st.rerun()
+        st.session_state.evaluatie_gestart = True
+        st.session_state.evaluatie_stap = 0
+        st.session_state.evaluatie_context = bouw_context(
+            st.session_state.profiel,
+            st.session_state.geschiedenis,
+            proef_pantheon,
+        )
+        st.session_state.evaluatie_context += (
+            "\n\n--- VOORZITTER ---\n"
+            "De voorzitter van deze sessie is Marcus Aurelius. "
+            "Laat Marcus Aurelius NIET meedoen in ronde 1 en ronde 2. "
+            "Marcus Aurelius komt alleen terug in de afsluiter."
+        )
+        st.rerun()
 
-    if not st.session_state.get("evaluatie_gestart", False):
-        st.stop()
+    # Toon de evaluatie
+    if st.session_state.evaluatie_gestart:
 
+        st.markdown("---")
+        st.markdown("## 🕊️ Eindgesprek")
+        st.caption("De filosofen kijken terug op wat er is gezegd.")
+
+        # Stap A: de twee rondes ophalen
+        if st.session_state.evaluatie_rondes is None:
+            with st.spinner("De filosofen denken na..."):
+                try:
+                    context = st.session_state.evaluatie_context
+
+                    data1 = haal_reacties_op(
+                        model_naam, provider_key,
+                        EVALUATIE_RONDE_1, context
+                    )
+                    rondes = {"ronde_1": (data1 or {}).get("reacties", [])}
+
+                    context2 = context + "\n\n--- RONDE 1 ---\n"
+                    for r in rondes["ronde_1"]:
+                        context2 += f"{r['naam']}: {r['tekst']}\n\n"
+                    data2 = haal_reacties_op(
+                        model_naam, provider_key,
+                        EVALUATIE_RONDE_2, context2
+                    )
+                    rondes["ronde_2"] = (data2 or {}).get("reacties", [])
+
+                    st.session_state.evaluatie_rondes = rondes
+
+                except Exception as e:
+                    st.error(f"Fout bij het ophalen van de evaluatie: {e}")
+
+        # Stap B: de afsluiter ophalen
+        if (st.session_state.evaluatie_rondes is not None
+                and st.session_state.evaluatie_afsluiter is None):
+            with st.spinner("De afsluiting wordt voorbereid..."):
+                try:
+                    context_afsluiter = st.session_state.evaluatie_context
+                    context_afsluiter += "\n\n--- AFSLUITING DOOR ---\nMarcus Aurelius\n\n"
+
+                    for ronde_naam, reacties in st.session_state.evaluatie_rondes.items():
+                        context_afsluiter += f"\n--- {ronde_naam.upper()} ---\n"
+                        for r in reacties:
+                            context_afsluiter += f"{r['naam']}: {r['tekst']}\n\n"
+
+                    data_afsluiter = haal_reacties_op(
+                        model_naam, provider_key,
+                        EVALUATIE_AFSLUITER, context_afsluiter
+                    )
+                    st.session_state.evaluatie_afsluiter = (
+                        data_afsluiter or {}
+                    ).get("afsluiter")
+
+                except Exception as e:
+                    st.error(f"Fout bij de afsluiter: {e}")
+
+        # Stap C: de reacties één voor één tonen
+        if st.session_state.evaluatie_rondes is not None:
+            alle_reacties = verzamel_alle_reacties(
+                st.session_state.evaluatie_rondes,
+                st.session_state.evaluatie_afsluiter,
+            )
+
+            stap = st.session_state.evaluatie_stap
+
+            for i, (ronde_label, r) in enumerate(alle_reacties):
+                if i > stap:
+                    break
+                with st.chat_message(r.get("naam", "?"), avatar=r.get("emoji", "🏛️")):
+                    st.markdown(f"**{r.get('naam', '?')}** · _{ronde_label}_")
+                    st.markdown(r.get("tekst", ""))
+
+            if stap < len(alle_reacties) - 1:
+                volgende = alle_reacties[stap + 1][1]
+                wachttijd = bereken_leestijd(volgende.get("tekst", ""))
+                time.sleep(wachttijd)
+                st.session_state.evaluatie_stap = stap + 1
+                st.rerun()
+
+            else:
+                # Alles is getoond: proefsessie afronden
+                st.session_state.profiel["proefsessie_geweest"] = True
+                bewaar_profiel(st.session_state.profiel)
+                st.rerun()
+
+    st.stop()
 
 # ============================================================
 # Betaalmuur
