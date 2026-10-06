@@ -333,6 +333,11 @@ st.sidebar.subheader("🔧 Parameters")
 max_historie = st.sidebar.slider("Max. berichten in context", 4, 40, 12, 2)
 
 st.sidebar.markdown("---")
+if st.sidebar.button("📊 Dashboard"):
+    st.session_state.toon_dashboard = True
+    st.rerun()
+
+st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Wis alle gesprekken"):
     try:
         wis_gesprek(gebruiker_id)
