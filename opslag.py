@@ -61,7 +61,15 @@ def initialiseer():
         cursor.execute("ALTER TABLE profielen ADD COLUMN tier TEXT DEFAULT 'sessie'")
     except Exception:
         pass
-        
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN favoriete_filosoof TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN eigen_pantheon TEXT")
+    except Exception:
+        pass
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS berichten (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,8 +110,9 @@ def bewaar_profiel(profiel):
         INSERT OR REPLACE INTO profielen
         (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
-         laatste_bericht, level, tier, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         laatste_bericht, level, tier, favoriete_filosoof,
+         eigen_pantheon, bijgewerkt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
@@ -117,6 +126,8 @@ def bewaar_profiel(profiel):
         profiel.get("laatste_bericht", 0),
         profiel.get("level", 1),
         profiel.get("tier", "sessie"),
+        profiel.get("favoriete_filosoof"),
+        json.dumps(profiel.get("eigen_pantheon", []), ensure_ascii=False),
     ))
 
     conn.commit()
@@ -134,6 +145,7 @@ def laad_profiel(gebruiker_id):
         )
         rij = cursor.fetchone()
         conn.close()
+
         if rij:
             return {
                 "gebruiker_id": rij[0],
@@ -148,8 +160,11 @@ def laad_profiel(gebruiker_id):
                 "laatste_bericht": float(rij[9]) if len(rij) > 9 and rij[9] else 0,
                 "level": int(rij[10]) if len(rij) > 10 and rij[10] else 1,
                 "tier": rij[11] if len(rij) > 11 and rij[11] else "sessie",
+                "favoriete_filosoof": rij[12] if len(rij) > 12 and rij[12] else None,
+                "eigen_pantheon": (
+                    json.loads(rij[13]) if len(rij) > 13 and rij[13] else []
+                ),
             }
-
     except Exception:
         pass
 
@@ -166,6 +181,8 @@ def laad_profiel(gebruiker_id):
         "laatste_bericht": 0,
         "level": 1,
         "tier": "sessie",
+        "favoriete_filosoof": None,
+        "eigen_pantheon": [],
     }
 
 
