@@ -422,6 +422,10 @@ if "eerste_gesprek_gestart" not in st.session_state:
     st.session_state.eerste_gesprek_gestart = False
 if "toon_dashboard" not in st.session_state:
     st.session_state.toon_dashboard = False
+if "gesprekken_gehad" not in st.session_state.profiel:
+    st.session_state.profiel["gesprekken_gehad"] = 0
+if "sessies_gekocht" not in st.session_state.profiel:
+    st.session_state.profiel["sessies_gekocht"] = 1
     
 if "welkom_geweest" not in st.session_state.profiel:
     st.session_state.profiel["welkom_geweest"] = False
@@ -441,6 +445,8 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.profiel = laad_profiel(gebruiker_id)
     if "level" not in st.session_state.profiel:
         st.session_state.profiel["level"] = 1
+    if "tier" not in st.session_state.profiel:
+        st.session_state.profiel["tier"] = "sessie"
     st.session_state.huidige_gebruiker = gebruiker_id
     opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
     st.session_state.geschiedenis = [
@@ -944,7 +950,32 @@ if (st.session_state.profiel.get("incheck_gedaan", False)
     st.session_state.pantheon = start_pantheon
     if start_pantheon:
         st.session_state.voorzitter = start_pantheon[0]
+# ============================================================
+# Check: mag deze gebruiker nog een gesprek voeren?
+# ============================================================
+tier = st.session_state.profiel.get("tier", "sessie")
+if tier == "sessie":
+    gesprekken_gehad = st.session_state.profiel.get("gesprekken_gehad", 0)
+    sessies_gekocht = st.session_state.profiel.get("sessies_gekocht", 1)
+    if gesprekken_gehad >= sessies_gekocht:
+        st.markdown("---")
+        st.markdown("## 🕊️ Je sessie is gebruikt")
+        st.markdown(
+            "Je hebt je sessie al gebruikt. Om verder te gaan, kun je "
+            "een nieuwe sessie kopen, of een abonnement nemen."
+        )
 
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🛒 Nieuwe sessie kopen", key="nieuwe_sessie_koop"):
+                st.session_state.toon_betaalscherm = True
+                st.rerun()
+        with col2:
+            if st.button("⭐ Abonnement nemen", key="abonnement_nemen"):
+                st.session_state.toon_betaalscherm = True
+                st.rerun()
+
+        st.stop()
 # ============================================================
 # Gesprek
 # ============================================================
