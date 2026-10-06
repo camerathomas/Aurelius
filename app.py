@@ -1489,12 +1489,6 @@ if st.session_state.get("toon_duur_keuze", False):
 
     st.stop()
 
-
-if st.session_state.get("einde", False):
-    st.markdown("---")
-    st.markdown("## 👋 Bedankt voor het gesprek")
-    st.caption("Tot de volgende keer.")
-
 if st.session_state.get("einde", False):
     st.markdown("---")
     st.markdown("## 👋 Bedankt voor het gesprek")
