@@ -800,26 +800,68 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
     st.stop()
 
-
 # ============================================================
 # BETAALSCHERM
 # ============================================================
-if st.session_state.get("toon_betaalscherm", False):
+if st.session_state.get("toon_betaalscherm"):
+    keuze = st.session_state.toon_betaalscherm
 
     st.markdown("---")
     st.markdown("## 💳 Betaling")
-    st.markdown(
-        "Bedankt voor het proberen. Om verder te gaan, kunt u een "
-        "sessie kopen. Druk op de knop hieronder om door te gaan."
-    )
 
-    if st.button("Ik heb betaald", type="primary"):
+    if keuze == "sessie":
+        st.markdown(
+            "**Nog een sessie kopen**\n\n"
+            "Je koopt één extra sessie. Daarna mag je weer één gesprek voeren."
+        )
+        prijs = "€2,50"
+    elif keuze == "basic":
+        st.markdown(
+            "**Basic abonnement**\n\n"
+            "Je krijgt onbeperkt gesprekken, toegang tot het archief, "
+            "en je speelt de levels vrij. Favorieten komen beschikbaar "
+            "vanaf level 5."
+        )
+        prijs = "€5,00 per maand"
+    elif keuze == "gold":
+        st.markdown(
+            "**Gold abonnement**\n\n"
+            "Je krijgt alles vanaf het begin: onbeperkt gesprekken, "
+            "alle filosofen, alle favorieten, archief, PDF, video, en "
+            "de mooiste stemmen."
+        )
+        prijs = "€15,00 per maand"
+    else:
+        st.error("Onbekende keuze.")
+        st.stop()
+
+    st.markdown(f"**Prijs:** {prijs}")
+
+    if st.button("Ik heb betaald", type="primary", key="betaal_knop"):
+        # Verwerk de keuze
+        if keuze == "sessie":
+            st.session_state.profiel["sessies_gekocht"] = (
+                st.session_state.profiel.get("sessies_gekocht", 1) + 1
+            )
+        elif keuze == "basic":
+            st.session_state.profiel["tier"] = "basic"
+            st.session_state.profiel["gesprekken_gehad"] = 0
+        elif keuze == "gold":
+            st.session_state.profiel["tier"] = "gold"
+            st.session_state.profiel["gesprekken_gehad"] = 0
+
         st.session_state.profiel["betaald"] = True
-        st.session_state.toon_betaalscherm = False
         bewaar_profiel(st.session_state.profiel)
+        st.session_state.toon_betaalscherm = False
+        st.rerun()
+
+    # Annuleer-knop
+    if st.button("← Terug", key="betaal_terug"):
+        st.session_state.toon_betaalscherm = False
         st.rerun()
 
     st.stop()
+
 # ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
@@ -965,14 +1007,23 @@ if tier == "sessie":
             "een nieuwe sessie kopen, of een abonnement nemen."
         )
 
-        col1, col2 = st.columns(2)
+        st.markdown("### Wat wil je doen?")
+
+        col1, col2, col3 = st.columns(3)
+
         with col1:
-            if st.button("🛒 Nieuwe sessie kopen", key="nieuwe_sessie_koop"):
-                st.session_state.toon_betaalscherm = True
+            if st.button("🛒 Nog een sessie kopen", key="koop_sessie"):
+                st.session_state.toon_betaalscherm = "sessie"
                 st.rerun()
+
         with col2:
-            if st.button("⭐ Abonnement nemen", key="abonnement_nemen"):
-                st.session_state.toon_betaalscherm = True
+            if st.button("⭐ Basic abonnement", key="koop_basic"):
+                st.session_state.toon_betaalscherm = "basic"
+                st.rerun()
+
+        with col3:
+            if st.button("👑 Gold abonnement", key="koop_gold"):
+                st.session_state.toon_betaalscherm = "gold"
                 st.rerun()
 
         st.stop()
