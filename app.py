@@ -1417,7 +1417,6 @@ if st.session_state.evaluatie_gestart:
         else:
             st.session_state.evaluatie_afgerond = True
 
-
 # ============================================================
 # EINDSCHERM
 # ============================================================
@@ -1431,7 +1430,8 @@ if (st.session_state.get("evaluatie_afgerond", False)
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("📁 Ja, archiveer deze sessie", type="primary"):
+        if st.button("📁 Ja, archiveer deze sessie", type="primary", key="archief_ja"):
+            # Sla de sessie op
             archiveer_sessie(
                 st.session_state.profiel,
                 st.session_state.geschiedenis,
@@ -1439,27 +1439,50 @@ if (st.session_state.get("evaluatie_afgerond", False)
                 st.session_state.evaluatie_afsluiter,
             )
 
-            huidig_level = st.session_state.profiel.get("level", 1)
-            if huidig_level < 5:
-                st.session_state.profiel["level"] = huidig_level + 1
-                bewaar_profiel(st.session_state.profiel)
+            # Teller voor sessies
+            st.session_state.profiel["gesprekken_gehad"] = (
+                st.session_state.profiel.get("gesprekken_gehad", 0) + 1
+            )
 
+            # Level verhogen (niet voor sessie-kopers)
+            if st.session_state.profiel.get("tier") != "sessie":
+                huidig_level = st.session_state.profiel.get("level", 1)
+                if huidig_level < 5:
+                    st.session_state.profiel["level"] = huidig_level + 1
+
+            # Sla het profiel op
+            bewaar_profiel(st.session_state.profiel)
+
+            # Ga naar de volgende stap
             st.session_state.archief_gevraagd = True
             st.session_state.archief_opgeslagen = True
             st.rerun()
 
     with col2:
-        if st.button("Nee, bewaar niet"):
-            huidig_level = st.session_state.profiel.get("level", 1)
-            if huidig_level < 5:
-                st.session_state.profiel["level"] = huidig_level + 1
-                bewaar_profiel(st.session_state.profiel)
+        if st.button("Nee, bewaar niet", key="archief_nee"):
+            # Teller voor sessies
+            st.session_state.profiel["gesprekken_gehad"] = (
+                st.session_state.profiel.get("gesprekken_gehad", 0) + 1
+            )
 
+            # Level verhogen (niet voor sessie-kopers)
+            if st.session_state.profiel.get("tier") != "sessie":
+                huidig_level = st.session_state.profiel.get("level", 1)
+                if huidig_level < 5:
+                    st.session_state.profiel["level"] = huidig_level + 1
+
+            # Sla het profiel op
+            bewaar_profiel(st.session_state.profiel)
+
+            # Ga naar de volgende stap
             st.session_state.archief_gevraagd = True
             st.session_state.archief_opgeslagen = False
             st.rerun()
 
 
+# ============================================================
+# NA HET ARCHIEF: drie knoppen
+# ============================================================
 if (st.session_state.get("archief_gevraagd", False)
         and not st.session_state.get("eind_keuze_gemaakt", False)):
 
@@ -1473,18 +1496,18 @@ if (st.session_state.get("archief_gevraagd", False)
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("☕ Nazit"):
+        if st.button("☕ Nazit", key="nazit_knop"):
             st.session_state.nazit_gestart = True
             st.session_state.eind_keuze_gemaakt = True
             st.rerun()
 
     with col2:
-        if st.button("🔄 Nieuwe sessie"):
+        if st.button("🔄 Nieuwe sessie", key="nieuwe_sessie_knop"):
             st.session_state.toon_duur_keuze = True
             st.rerun()
 
     with col3:
-        if st.button("👋 Afsluiten"):
+        if st.button("👋 Afsluiten", key="afsluiten_knop"):
             st.session_state.einde = True
             st.session_state.eind_keuze_gemaakt = True
             st.rerun()
