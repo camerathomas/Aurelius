@@ -284,7 +284,7 @@ INCHECK_VRAGEN = [
 st.sidebar.title("🏛️ Aurelius")
 st.sidebar.caption("Jouw filosofische metgezel")
 
-gebruiker_id = st.sidebar.text_input("Gebruikersnaam", value="remco")
+gebruiker_id = st.sidebar.text_input("Vul hier je naam in", value="")
 
 level = st.session_state.get("profiel", {}).get("level", 1)
 st.sidebar.markdown(f"### 🎯 Level {level}")
