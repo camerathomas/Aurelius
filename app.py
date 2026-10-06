@@ -809,6 +809,7 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
                 st.session_state.geschiedenis,
                 st.session_state.proef_evaluatie_rondes,
                 st.session_state.proef_evaluatie_afsluiter,
+                api_key,
             )
             st.session_state.profiel["proefsessie_geweest"] = True
             st.session_state.profiel["archief_opgeslagen"] = True
@@ -1506,6 +1507,7 @@ if (st.session_state.get("evaluatie_afgerond", False)
                 st.session_state.geschiedenis,
                 st.session_state.evaluatie_rondes,
                 st.session_state.evaluatie_afsluiter,
+                api_key,
             )
 
             # Teller voor sessies
