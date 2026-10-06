@@ -420,7 +420,9 @@ if "voorzitter" not in st.session_state:
     st.session_state.voorzitter = None
 if "eerste_gesprek_gestart" not in st.session_state:
     st.session_state.eerste_gesprek_gestart = False
-
+if "toon_dashboard" not in st.session_state:
+    st.session_state.toon_dashboard = False
+    
 if "welkom_geweest" not in st.session_state.profiel:
     st.session_state.profiel["welkom_geweest"] = False
 if "proefsessie_geweest" not in st.session_state.profiel:
