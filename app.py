@@ -1430,7 +1430,7 @@ if (st.session_state.get("archief_gevraagd", False)
 
     with col2:
         if st.button("🔄 Nieuwe sessie"):
-            reset_voor_nieuwe_sessie()
+            st.session_state.toon_duur_keuze = True
             st.rerun()
 
     with col3:
@@ -1439,6 +1439,49 @@ if (st.session_state.get("archief_gevraagd", False)
             st.session_state.eind_keuze_gemaakt = True
             st.rerun()
 
+    with col3:
+        if st.button("👋 Afsluiten"):
+            st.session_state.einde = True
+            st.session_state.eind_keuze_gemaakt = True
+            st.rerun()
+
+
+# ============================================================
+# Duurkeuze voor een nieuwe sessie
+# ============================================================
+if st.session_state.get("toon_duur_keuze", False):
+    st.markdown("---")
+    st.markdown("## 🕐 Hoe lang heb je vandaag?")
+    st.caption("Kies hoe lang het gesprek mag duren.")
+
+    keuze = st.radio(
+        "Duur",
+        ["Flitsgesprek (5 min)", "Kort gesprek (10 min)",
+         "Standaard (20 min)", "Diep (30 min)"],
+        label_visibility="collapsed",
+        key="duur_keuze_nieuw"
+    )
+
+    if st.button("Start gesprek", type="primary"):
+        duur_map = {
+            "Flitsgesprek (5 min)": 5,
+            "Kort gesprek (10 min)": 10,
+            "Standaard (20 min)": 20,
+            "Diep (30 min)": 30,
+        }
+        st.session_state.profiel["sessie_duur"] = duur_map.get(keuze, 10)
+        st.session_state.toon_duur_keuze = False
+
+        reset_voor_nieuwe_sessie()
+        st.rerun()
+
+    st.stop()
+
+
+if st.session_state.get("einde", False):
+    st.markdown("---")
+    st.markdown("## 👋 Bedankt voor het gesprek")
+    st.caption("Tot de volgende keer.")
 
 if st.session_state.get("einde", False):
     st.markdown("---")
