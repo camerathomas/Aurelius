@@ -57,7 +57,11 @@ def initialiseer():
         cursor.execute("ALTER TABLE profielen ADD COLUMN level INTEGER DEFAULT 1")
     except Exception:
         pass
-
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN tier TEXT DEFAULT 'sessie'")
+    except Exception:
+        pass
+        
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS berichten (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,8 +102,8 @@ def bewaar_profiel(profiel):
         INSERT OR REPLACE INTO profielen
         (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
-         laatste_bericht, level, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         laatste_bericht, level, tier, bijgewerkt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
@@ -112,6 +116,7 @@ def bewaar_profiel(profiel):
         profiel.get("sessie_start", 0),
         profiel.get("laatste_bericht", 0),
         profiel.get("level", 1),
+        profiel.get("tier", "sessie"),
     ))
 
     conn.commit()
@@ -129,7 +134,6 @@ def laad_profiel(gebruiker_id):
         )
         rij = cursor.fetchone()
         conn.close()
-
         if rij:
             return {
                 "gebruiker_id": rij[0],
@@ -143,7 +147,9 @@ def laad_profiel(gebruiker_id):
                 "sessie_start": float(rij[8]) if len(rij) > 8 and rij[8] else 0,
                 "laatste_bericht": float(rij[9]) if len(rij) > 9 and rij[9] else 0,
                 "level": int(rij[10]) if len(rij) > 10 and rij[10] else 1,
+                "tier": rij[11] if len(rij) > 11 and rij[11] else "sessie",
             }
+
     except Exception:
         pass
 
@@ -159,6 +165,7 @@ def laad_profiel(gebruiker_id):
         "sessie_start": 0,
         "laatste_bericht": 0,
         "level": 1,
+        "tier": "sessie",
     }
 
 
