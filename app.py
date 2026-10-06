@@ -467,6 +467,18 @@ st.write("sessie_tijd:", st.session_state.profiel.get("sessie_tijd", 0))
 st.write("sessie_duur:", st.session_state.profiel.get("sessie_duur", 0))
 
 # ============================================================
+# Dashboard
+# ============================================================
+if st.session_state.get("toon_dashboard", False):
+    if st.button("← Terug naar de app"):
+        st.session_state.toon_dashboard = False
+        st.rerun()
+
+    from dashboard import toon_dashboard
+    toon_dashboard(gebruiker_id, st.session_state.profiel)
+    st.stop()
+
+# ============================================================
 # Welkomstscherm
 # ============================================================
 if not st.session_state.profiel.get("welkom_geweest", False):
