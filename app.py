@@ -80,14 +80,33 @@ except Exception as e:
 # ============================================================
 # Hulp-functies
 # ============================================================
-def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter):
+def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     """Slaat de sessie op in het archief in de database."""
     gebruiker_id = st.session_state.get("huidige_gebruiker", "remco")
     incheck = profiel.get("laatste_incheck", {})
     duur = profiel.get("sessie_duur", 10)
     pantheon_nu = st.session_state.get("pantheon", [])
 
-    thema = incheck.get("openheid", "")[:80] if incheck.get("openheid") else "onbekend"
+    # Bepaal het thema met de AI
+    thema = "onbekend"
+    try:
+        client = genai.Client(api_key=api_key)
+        gesprek_tekst = "\n".join(
+            f"{b['naam']}: {b['tekst']}" for b in geschiedenis[-10:]
+        )
+        prompt = (
+            "Geef in maximaal 5 woorden het thema van dit gesprek. "
+            "Alleen het thema, geen uitleg, geen punctuatie.\n\n"
+            + gesprek_tekst
+        )
+        thema_antwoord, _ = vraag_ai(client, prompt)
+        thema = thema_antwoord.strip()[:60]
+    except Exception:
+        # Fallback: gebruik het eerste bericht van de gebruiker
+        for b in geschiedenis:
+            if b["naam"] == "Jij":
+                thema = b["tekst"][:60]
+                break
 
     try:
         bewaar_sessie(
@@ -102,7 +121,6 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter):
         )
     except Exception as e:
         st.error(f"Fout bij archiveren: {e}")
-
 
 def reset_voor_nieuwe_sessie():
     """Reset alles behalve het profiel, zodat een nieuwe sessie kan beginnen."""
