@@ -1439,13 +1439,6 @@ if (st.session_state.get("archief_gevraagd", False)
             st.session_state.eind_keuze_gemaakt = True
             st.rerun()
 
-    with col3:
-        if st.button("👋 Afsluiten"):
-            st.session_state.einde = True
-            st.session_state.eind_keuze_gemaakt = True
-            st.rerun()
-
-
 # ============================================================
 # Duurkeuze voor een nieuwe sessie
 # ============================================================
