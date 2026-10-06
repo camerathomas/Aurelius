@@ -352,7 +352,20 @@ if st.sidebar.button("🗑️ Wis alle gesprekken"):
     except Exception as e:
         st.sidebar.error(f"Fout: {e}")
 
-
+# ============================================================
+# Check: is er een gebruikersnaam?
+# ============================================================
+if not gebruiker_id or gebruiker_id.strip() == "":
+    st.title("🏛️ Aurelius")
+    st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
+    st.markdown("---")
+    st.markdown("### 👋 Welkom")
+    st.markdown(
+        "Vul in de zijbalk je gebruikersnaam in om te beginnen. "
+        "Als je nieuw bent, kies dan een naam die je wilt gebruiken. "
+        "Als je al eerder bent geweest, vul dan dezelfde naam in."
+    )
+    st.stop()
 # ============================================================
 # Sessie-state
 # ============================================================
