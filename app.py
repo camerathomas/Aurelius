@@ -825,7 +825,7 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
             st.session_state.profiel["proefsessie_geweest"] = True
             st.session_state.profiel["archief_opgeslagen"] = True
             bewaar_profiel(st.session_state.profiel)
-            st.session_state.toon_betaalscherm = True
+            st.session_state.toon_betaalscherm = "keuze"
             st.rerun()
 
     st.stop()
@@ -839,6 +839,44 @@ if st.session_state.get("toon_betaalscherm"):
     st.markdown("---")
     st.markdown("## 💳 Betaling")
 
+    # Stap 1: de gebruiker kiest
+    if keuze == "keuze" or keuze is True:
+        st.markdown("### Kies wat je wilt")
+        st.markdown(
+            "Je kunt een losse sessie kopen, of een abonnement nemen. "
+            "Met een abonnement krijg je meer mogelijkheden."
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("**🛒 Nog een sessie**")
+            st.caption("€2,50 — één extra gesprek")
+            if st.button("Kies sessie", key="keuze_sessie"):
+                st.session_state.toon_betaalscherm = "sessie"
+                st.rerun()
+
+        with col2:
+            st.markdown("**⭐ Basic**")
+            st.caption("€5,00 per maand — onbeperkt gesprekken")
+            if st.button("Kies Basic", key="keuze_basic"):
+                st.session_state.toon_betaalscherm = "basic"
+                st.rerun()
+
+        with col3:
+            st.markdown("**👑 Gold**")
+            st.caption("€15,00 per maand — alles vanaf het begin")
+            if st.button("Kies Gold", key="keuze_gold"):
+                st.session_state.toon_betaalscherm = "gold"
+                st.rerun()
+
+        if st.button("← Terug", key="keuze_terug"):
+            st.session_state.toon_betaalscherm = False
+            st.rerun()
+
+        st.stop()
+
+    # Stap 2: het betaalscherm voor de gekozen optie
     if keuze == "sessie":
         st.markdown(
             "**Nog een sessie kopen**\n\n"
@@ -885,13 +923,12 @@ if st.session_state.get("toon_betaalscherm"):
         st.session_state.toon_betaalscherm = False
         st.rerun()
 
-    # Annuleer-knop
+    # Terug-knop
     if st.button("← Terug", key="betaal_terug"):
-        st.session_state.toon_betaalscherm = False
+        st.session_state.toon_betaalscherm = "keuze"
         st.rerun()
 
     st.stop()
-
 # ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
