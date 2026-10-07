@@ -427,8 +427,6 @@ if "incheck_afgerond" not in st.session_state:
     st.session_state.incheck_afgerond = False
 if "geschiedenis" not in st.session_state:
     st.session_state.geschiedenis = []
-if "profiel" not in st.session_state:
-    st.session_state.profiel = laad_profiel(gebruiker_id)
 if "grote_wending_geweest" not in st.session_state:
     st.session_state.grote_wending_geweest = False
 if "evaluatie_gestart" not in st.session_state:
@@ -472,12 +470,13 @@ if "toon_dashboard" not in st.session_state:
 if "toon_duur_keuze" not in st.session_state:
     st.session_state.toon_duur_keuze = False
 
-# Nieuwe gebruiker? Laad het profiel opnieuw
-if st.session_state.get("huidige_gebruiker") != gebruiker_id:
+# Laad het profiel één keer per sessie.
+# Bij een nieuwe gebruiker: F5 → naamveld leeg → naam intypen → profiel wordt geladen.
+if "profiel" not in st.session_state:
     st.session_state.profiel = laad_profiel(gebruiker_id)
 
-    # Als het laden faalt, geeft laad_profiel een fallback terug.
-    # In dat geval stoppen we, zodat we geen fallback-data opslaan.
+    # Fallback-check: als het laden faalt, stop dan — anders
+    # overschrijven we straks de echte data met fallback-waarden.
     if st.session_state.profiel.get("_is_fallback"):
         st.error(
             "⚠️ **Je profiel kon niet worden geladen.**\n\n"
@@ -487,16 +486,15 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
         )
         st.stop()
 
-    st.session_state.huidige_gebruiker = gebruiker_id
-
+    # Bepaal de beginsituatie van de sessie op basis van het profiel.
     if st.session_state.profiel.get("sessie_afgerond", True):
-        # Sessie is afgerond: begin met een lege geschiedenis
+        # Sessie is afgerond: begin met een lege geschiedenis.
         st.session_state.geschiedenis = []
         st.session_state.incheck = {}
         st.session_state.incheck_stap = 0
         st.session_state.incheck_afgerond = False
     else:
-        # Sessie is niet afgerond: laad de geschiedenis uit de database
+        # Sessie is niet afgerond: laad de geschiedenis uit de database.
         opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
         st.session_state.geschiedenis = [
             {
@@ -514,8 +512,6 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
             st.session_state.incheck = {}
             st.session_state.incheck_stap = 0
             st.session_state.incheck_afgerond = False
-
-
 # ============================================================
 # Hoofdinterface
 # ============================================================
