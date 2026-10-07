@@ -42,7 +42,7 @@ TIERS = {
             "favoriete_onderwerp": "level_10",
             "video": False,
             "elevenlabs": False,
-            "eigen_pantheon": "level_10",
+            "eigen_pantheon": "level_5",
         },
     },
     "gold": {
