@@ -19,7 +19,7 @@ def toon_dashboard(gebruiker_id, profiel):
     )
 
     with tab1:
-        _toon_archief(gebruiker_id)
+        _toon_archief(gebruiker_id, profiel)
 
     with tab2:
         _toon_voortgang(profiel)
@@ -34,7 +34,7 @@ def toon_dashboard(gebruiker_id, profiel):
 # ============================================================
 # Archief
 # ============================================================
-def _toon_archief(gebruiker_id):
+def _toon_archief(gebruiker_id, profiel):
     """Toont de gearchiveerde sessies."""
     st.markdown("### Jouw archief")
 
@@ -109,7 +109,27 @@ def _toon_archief(gebruiker_id):
                     f"**{afsluiter.get('naam', '?')}:** "
                     f"{afsluiter.get('tekst', '')}"
                 )
+            # PDF-download (alleen voor basic en gold)
+            from tiers import heeft_toegang
+            _tier = profiel.get("tier", "sessie")
+            _level = profiel.get("level", 1)
 
+            if heeft_toegang(_tier, _level, "pdf"):
+                st.markdown("---")
+                from pdf import maak_pdf
+                try:
+                    pdf_pad = maak_pdf(sessie=sessie)
+                    with open(pdf_pad, "rb") as f:
+                        pdf_bytes = f.read()
+                    st.download_button(
+                        "📄 Download als PDF",
+                        pdf_bytes,
+                        file_name=f"aurelius_{str(sessie.get('datum', ''))[:10]}.pdf",
+                        mime="application/pdf",
+                        key=f"pdf_{sessie.get('id', 'x')}",
+                    )
+                except Exception as e:
+                    st.caption(f"PDF kon niet worden gemaakt: {e}")
 
 # ============================================================
 # Voortgang
