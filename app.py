@@ -149,7 +149,7 @@ def reset_voor_nieuwe_sessie():
     st.session_state.huidige_wending = None
     st.session_state.beurten_teller = {}
     st.session_state.voorzitter = None
-    st.session_state.pantheon = None          # ← nieuw: pantheon resetten
+    st.session_state.pantheon = None
     st.session_state.eerste_gesprek_gestart = False
     st.session_state.profiel["sessie_tijd"] = 0
     st.session_state.profiel["sessie_start"] = time.time()
@@ -207,6 +207,7 @@ def bouw_pantheon_voor_sessie(profiel):
 
     huidig_level = profiel.get("level", 1)
     return PANTHEON_PER_LEVEL.get(huidig_level, PANTHEON_PER_LEVEL.get(1, []))
+
 
 # ============================================================
 # Fasen
@@ -414,6 +415,7 @@ if not gebruiker_id or gebruiker_id.strip() == "":
     )
     st.stop()
 
+
 # ============================================================
 # Sessie-state
 # ============================================================
@@ -470,37 +472,21 @@ if "toon_dashboard" not in st.session_state:
 if "toon_duur_keuze" not in st.session_state:
     st.session_state.toon_duur_keuze = False
 
-# Profiel-velden
-if "gesprekken_gehad" not in st.session_state.profiel:
-    st.session_state.profiel["gesprekken_gehad"] = 0
-if "sessies_gekocht" not in st.session_state.profiel:
-    st.session_state.profiel["sessies_gekocht"] = 1
-if "welkom_geweest" not in st.session_state.profiel:
-    st.session_state.profiel["welkom_geweest"] = False
-if "proefsessie_geweest" not in st.session_state.profiel:
-    st.session_state.profiel["proefsessie_geweest"] = False
-if "proef_gestart" not in st.session_state.profiel:
-    st.session_state.profiel["proef_gestart"] = False
-if "betaald" not in st.session_state.profiel:
-    st.session_state.profiel["betaald"] = False
-if "incheck_gedaan" not in st.session_state.profiel:
-    st.session_state.profiel["incheck_gedaan"] = False
-if "level" not in st.session_state.profiel:
-    st.session_state.profiel["level"] = 1
-if "tier" not in st.session_state.profiel:
-    st.session_state.profiel["tier"] = "sessie"
-if "gebruik_eigen_pantheon" not in st.session_state.profiel:
-    st.session_state.profiel["gebruik_eigen_pantheon"] = False
-
 # Nieuwe gebruiker? Laad het profiel opnieuw
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.profiel = laad_profiel(gebruiker_id)
-    if "level" not in st.session_state.profiel:
-        st.session_state.profiel["level"] = 1
-    if "tier" not in st.session_state.profiel:
-        st.session_state.profiel["tier"] = "sessie"
-    if "gebruik_eigen_pantheon" not in st.session_state.profiel:
-        st.session_state.profiel["gebruik_eigen_pantheon"] = False
+
+    # Als het laden faalt, geeft laad_profiel een fallback terug.
+    # In dat geval stoppen we, zodat we geen fallback-data opslaan.
+    if st.session_state.profiel.get("_is_fallback"):
+        st.error(
+            "⚠️ **Je profiel kon niet worden geladen.**\n\n"
+            "Dit kan komen door een database-storing of een tijdelijk probleem. "
+            "Probeer de pagina te verversen. Als het probleem blijft, "
+            "probeer het dan later opnieuw."
+        )
+        st.stop()
+
     st.session_state.huidige_gebruiker = gebruiker_id
 
     if st.session_state.profiel.get("sessie_afgerond", True):
@@ -535,10 +521,6 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
 # ============================================================
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
-
-# Tijdsdebug (alleen tijdens ontwikkeling)
-# st.write("sessie_tijd:", st.session_state.profiel.get("sessie_tijd", 0))
-# st.write("sessie_duur:", st.session_state.profiel.get("sessie_duur", 0))
 
 
 # ============================================================
@@ -969,6 +951,7 @@ if st.session_state.get("toon_betaalscherm"):
 
     st.stop()
 
+
 # ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
@@ -1166,6 +1149,7 @@ if tier == "sessie":
 
         st.stop()
 
+
 # ============================================================
 # Gesprek
 # ============================================================
@@ -1290,7 +1274,6 @@ if not st.session_state.geschiedenis:
     st.session_state.beurten_teller[filosoof_naam] = (
         st.session_state.beurten_teller.get(filosoof_naam, 0) + 1
     )
-
 
 # ============================================================
 # Invoer van de gebruiker
@@ -1627,7 +1610,6 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
     with col1:
         if st.button("📁 Ja, archiveer deze sessie", type="primary", key="archief_ja"):
-            # Sla de sessie op
             archiveer_sessie(
                 st.session_state.profiel,
                 st.session_state.geschiedenis,
@@ -1636,48 +1618,38 @@ if (st.session_state.get("evaluatie_afgerond", False)
                 api_key,
             )
 
-            # Markeer de sessie als afgerond
             st.session_state.profiel["sessie_afgerond"] = True
 
-            # Teller voor sessies
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
             )
 
-            # Level verhogen (niet voor sessie-kopers)
             if st.session_state.profiel.get("tier") != "sessie":
                 huidig_level = st.session_state.profiel.get("level", 1)
                 if huidig_level < 5:
                     st.session_state.profiel["level"] = huidig_level + 1
 
-            # Sla het profiel op
             bewaar_profiel(st.session_state.profiel)
 
-            # Ga naar de volgende stap
             st.session_state.archief_gevraagd = True
             st.session_state.archief_opgeslagen = True
             st.rerun()
 
     with col2:
         if st.button("Nee, bewaar niet", key="archief_nee"):
-            # Markeer de sessie als afgerond
             st.session_state.profiel["sessie_afgerond"] = True
 
-            # Teller voor sessies
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
             )
 
-            # Level verhogen (niet voor sessie-kopers)
             if st.session_state.profiel.get("tier") != "sessie":
                 huidig_level = st.session_state.profiel.get("level", 1)
                 if huidig_level < 5:
                     st.session_state.profiel["level"] = huidig_level + 1
 
-            # Sla het profiel op
             bewaar_profiel(st.session_state.profiel)
 
-            # Ga naar de volgende stap
             st.session_state.archief_gevraagd = True
             st.session_state.archief_opgeslagen = False
             st.rerun()
