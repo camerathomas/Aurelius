@@ -468,23 +468,32 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     if "tier" not in st.session_state.profiel:
         st.session_state.profiel["tier"] = "sessie"
     st.session_state.huidige_gebruiker = gebruiker_id
-    opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
-    st.session_state.geschiedenis = [
-        {
-            "naam": b["filosoof"] if b["rol"] == "assistant" else "Jij",
-            "tekst": b["tekst"],
-            "icoon": FILOSOFEN.get(b["filosoof"], {}).get("emoji", "🏛️") if b["rol"] == "assistant" else "🧑",
-            "tijd": str(b["tijd"])[11:16] if b.get("tijd") else "",
-        }
-        for b in opgeslagen
-    ]
-    if st.session_state.geschiedenis:
-        st.session_state.incheck_afgerond = True
-        st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
-    else:
+
+    if st.session_state.profiel.get("sessie_afgerond", True):
+        # Sessie is afgerond: begin met een lege geschiedenis
+        st.session_state.geschiedenis = []
         st.session_state.incheck = {}
         st.session_state.incheck_stap = 0
         st.session_state.incheck_afgerond = False
+    else:
+        # Sessie is niet afgerond: laad de geschiedenis uit de database
+        opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
+        st.session_state.geschiedenis = [
+            {
+                "naam": b["filosoof"] if b["rol"] == "assistant" else "Jij",
+                "tekst": b["tekst"],
+                "icoon": FILOSOFEN.get(b["filosoof"], {}).get("emoji", "🏛️") if b["rol"] == "assistant" else "🧑",
+                "tijd": str(b["tijd"])[11:16] if b.get("tijd") else "",
+            }
+            for b in opgeslagen
+        ]
+        if st.session_state.geschiedenis:
+            st.session_state.incheck_afgerond = True
+            st.session_state.incheck = st.session_state.profiel.get("laatste_incheck", {})
+        else:
+            st.session_state.incheck = {}
+            st.session_state.incheck_stap = 0
+            st.session_state.incheck_afgerond = False
 
 # ============================================================
 # Hoofdinterface
@@ -1512,6 +1521,9 @@ if (st.session_state.get("evaluatie_afgerond", False)
                 api_key,
             )
 
+            # Markeer de sessie als afgerond
+            st.session_state.profiel["sessie_afgerond"] = True
+
             # Teller voor sessies
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
@@ -1533,6 +1545,9 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
     with col2:
         if st.button("Nee, bewaar niet", key="archief_nee"):
+            # Markeer de sessie als afgerond
+            st.session_state.profiel["sessie_afgerond"] = True
+
             # Teller voor sessies
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
