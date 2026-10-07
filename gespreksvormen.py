@@ -5,10 +5,12 @@ filosofen. Verder blijft alles hetzelfde: pantheon-principe, wendingen,
 eindgesprek.
 """
 
+
 GESPREKSVORMEN = {
-    "themag-esprek": {
+    "themagesprek": {
         "naam": "Themagesprek",
         "beschrijving": "De filosofen reageren op wat jij inbrengt.",
+        "icoon": "🏛️",
         "filosofen": "pantheon",
         "gebruiker_rol": "deelnemer",
         "prompt_toevoeging": (
@@ -20,6 +22,7 @@ GESPREKSVORMEN = {
     "grote_dialoog": {
         "naam": "Grote dialoog",
         "beschrijving": "De filosofen praten met elkaar. Jij kunt bijsturen.",
+        "icoon": "🎭",
         "filosofen": "pantheon",
         "gebruiker_rol": "gastheer",
         "prompt_toevoeging": (
@@ -34,6 +37,7 @@ GESPREKSVORMEN = {
     "tweegesprek": {
         "naam": "Tweegesprek",
         "beschrijving": "Jij en één filosoof. Diepgaand.",
+        "icoon": "🤝",
         "filosofen": "één",
         "gebruiker_rol": "deelnemer",
         "prompt_toevoeging": (
@@ -46,6 +50,7 @@ GESPREKSVORMEN = {
     "vervolggesprek": {
         "naam": "Vervolggesprek",
         "beschrijving": "Bouwt voort op een eerdere sessie.",
+        "icoon": "🔄",
         "filosofen": "pantheon",
         "gebruiker_rol": "deelnemer",
         "prompt_toevoeging": (
@@ -91,6 +96,38 @@ def bouw_vorm_prompt(vorm_naam, context=None):
         prompt += f"\n\n[CONTEXT VAN EERDERE SESSIE]\n{context}"
 
     return prompt
+
+
+def bouw_vervolg_context(sessie):
+    """
+    Bouwt de context van een eerdere sessie voor een vervolggesprek.
+    Geeft een string terug die aan de prompt wordt toegevoegd.
+    """
+    if not sessie:
+        return ""
+
+    onderdelen = []
+
+    # Het thema
+    if sessie.get("thema"):
+        onderdelen.append(f"Onderwerp: {sessie['thema']}")
+
+    # De incheck
+    incheck = sessie.get("incheck", {})
+    if incheck:
+        onderdelen.append(f"Wat speelde er: {incheck.get('openheid', '—')}")
+        onderdelen.append(f"Emotie: {incheck.get('emotie', '—')}")
+        onderdelen.append(f"Intentie: {incheck.get('intentie', '—')}")
+
+    # De afsluiter (samenvatting van de vorige sessie)
+    afsluiter = sessie.get("afsluiter", {})
+    if afsluiter:
+        onderdelen.append(
+            f"Afsluiting door {afsluiter.get('naam', '?')}: "
+            f"{afsluiter.get('tekst', '')}"
+        )
+
+    return "\n".join(onderdelen)
 
 
 def is_beschikbaar(vorm_naam, profiel, heeft_eerdere_sessie=False):
