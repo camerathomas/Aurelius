@@ -1672,3 +1672,55 @@ if st.session_state.get("einde", False):
     st.markdown("---")
     st.markdown("## 👋 Bedankt voor het gesprek")
     st.caption("Tot de volgende keer.")
+
+# ============================================================
+# Duurkeuze voor een nieuwe sessie
+# ============================================================
+if st.session_state.get("toon_duur_keuze", False):
+    st.markdown("---")
+    st.markdown("## 🕐 Hoe lang heb je vandaag?")
+    st.caption("Kies hoe lang het gesprek mag duren.")
+
+    keuze = st.radio(
+        "Duur",
+        ["Flitsgesprek (5 min)", "Kort gesprek (10 min)",
+         "Standaard (20 min)", "Diep (30 min)"],
+        label_visibility="collapsed",
+        key="duur_keuze_nieuw"
+    )
+
+    # Keuze voor het pantheon
+    eigen_pantheon = st.session_state.profiel.get("eigen_pantheon", [])
+    gebruik_eigen = False
+
+    if eigen_pantheon:
+        st.markdown("---")
+        st.markdown("### Met wie wil je spreken?")
+        pantheon_keuze = st.radio(
+            "Pantheon",
+            ["Standaard pantheon van dit level", "Mijn eigen pantheon"],
+            label_visibility="collapsed",
+            key="pantheon_keuze_nieuw"
+        )
+        gebruik_eigen = pantheon_keuze == "Mijn eigen pantheon"
+
+    if st.button("Start gesprek", type="primary"):
+        duur_map = {
+            "Flitsgesprek (5 min)": 5,
+            "Kort gesprek (10 min)": 10,
+            "Standaard (20 min)": 20,
+            "Diep (30 min)": 30,
+        }
+        st.session_state.profiel["sessie_duur"] = duur_map.get(keuze, 10)
+        st.session_state.profiel["sessie_afgerond"] = False
+
+        # Sla de pantheon-keuze op
+        st.session_state.profiel["gebruik_eigen_pantheon"] = gebruik_eigen
+
+        bewaar_profiel(st.session_state.profiel)
+        st.session_state.toon_duur_keuze = False
+
+        reset_voor_nieuwe_sessie()
+        st.rerun()
+
+    st.stop()
