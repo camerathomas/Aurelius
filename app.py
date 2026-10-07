@@ -193,8 +193,15 @@ def kies_filosoof_met_verdeling(pantheon, voorzitter, teller):
 
 def bouw_pantheon_voor_sessie(profiel):
     """
-    Bepaalt het pantheon voor deze sessie op basis van het level.
+    Bepaalt het pantheon voor deze sessie.
+    - Als de gebruiker het eigen pantheon wil, gebruik dat.
+    - Anders het standaard pantheon van het level.
     """
+    if profiel.get("gebruik_eigen_pantheon", False):
+        eigen = profiel.get("eigen_pantheon", [])
+        if eigen:
+            return eigen
+
     huidig_level = profiel.get("level", 1)
     return PANTHEON_PER_LEVEL.get(huidig_level, PANTHEON_PER_LEVEL.get(1, []))
 
