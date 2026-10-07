@@ -130,7 +130,22 @@ def _toon_archief(gebruiker_id, profiel):
                     )
                 except Exception as e:
                     st.caption(f"PDF kon niet worden gemaakt: {e}")
-
+            # Vervolggesprek (alleen voor gold)
+            if heeft_toegang(_tier, _level, "vervolggesprek"):
+                if st.button(
+                    "🔄 Vervolggesprek",
+                    key=f"vervolg_{sessie.get('id', 'x')}",
+                    use_container_width=True,
+                    type="primary",
+                ):
+                    st.session_state.profiel["gespreksvorm"] = "vervolggesprek"
+                    st.session_state.profiel["vervolg_sessie_id"] = sessie.get("id")
+                    st.session_state.profiel["sessie_afgerond"] = False
+                    from opslag import bewaar_profiel
+                    bewaar_profiel(st.session_state.profiel)
+                    st.session_state.toon_dashboard = False
+                    st.session_state.toon_duur_keuze = True
+                    st.rerun()
 # ============================================================
 # Voortgang
 # ============================================================
