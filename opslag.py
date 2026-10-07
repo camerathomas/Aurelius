@@ -73,7 +73,11 @@ def initialiseer():
         cursor.execute("ALTER TABLE profielen ADD COLUMN sessie_afgerond INTEGER DEFAULT 1")
     except Exception:
         pass
-        
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN gebruik_eigen_pantheon INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS berichten (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,8 +119,8 @@ def bewaar_profiel(profiel):
         (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
          laatste_bericht, level, tier, favoriete_filosoof,
-         eigen_pantheon, sessie_afgerond, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         eigen_pantheon, sessie_afgerond, gebruik_eigen_pantheon, bijgewerkt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
@@ -133,10 +137,12 @@ def bewaar_profiel(profiel):
         profiel.get("favoriete_filosoof"),
         json.dumps(profiel.get("eigen_pantheon", []), ensure_ascii=False),
         1 if profiel.get("sessie_afgerond", True) else 0,
+        1 if profiel.get("gebruik_eigen_pantheon", False) else 0,
     ))
 
     conn.commit()
     conn.close()
+
 
 def laad_profiel(gebruiker_id):
     """Laadt een profiel, of maakt een nieuw aan."""
@@ -171,6 +177,9 @@ def laad_profiel(gebruiker_id):
                 "sessie_afgerond": (
                     bool(rij[14]) if len(rij) > 14 and rij[14] is not None else True
                 ),
+                "gebruik_eigen_pantheon": (
+                    bool(rij[15]) if len(rij) > 15 and rij[15] else False
+                ),
             }
     except Exception:
         pass
@@ -191,6 +200,7 @@ def laad_profiel(gebruiker_id):
         "favoriete_filosoof": None,
         "eigen_pantheon": [],
         "sessie_afgerond": True,
+        "gebruik_eigen_pantheon": False,
     }
 
 
