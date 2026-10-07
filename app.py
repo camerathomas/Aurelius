@@ -1703,6 +1703,7 @@ if st.session_state.get("toon_duur_keuze", False):
     if eigen_pantheon:
         st.markdown("---")
         st.markdown("### Met wie wil je spreken?")
+
         pantheon_keuze = st.radio(
             "Pantheon",
             ["Standaard pantheon van dit level", "Mijn eigen pantheon"],
@@ -1720,10 +1721,7 @@ if st.session_state.get("toon_duur_keuze", False):
         }
         st.session_state.profiel["sessie_duur"] = duur_map.get(keuze, 10)
         st.session_state.profiel["sessie_afgerond"] = False
-
-        # Sla de pantheon-keuze op
         st.session_state.profiel["gebruik_eigen_pantheon"] = gebruik_eigen
-
         bewaar_profiel(st.session_state.profiel)
         st.session_state.toon_duur_keuze = False
 
