@@ -116,7 +116,7 @@ def bewaar_profiel(profiel):
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
          laatste_bericht, level, tier, favoriete_filosoof,
          eigen_pantheon, sessie_afgerond, bijgewerkt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
@@ -132,11 +132,11 @@ def bewaar_profiel(profiel):
         profiel.get("tier", "sessie"),
         profiel.get("favoriete_filosoof"),
         json.dumps(profiel.get("eigen_pantheon", []), ensure_ascii=False),
+        1 if profiel.get("sessie_afgerond", True) else 0,
     ))
 
     conn.commit()
     conn.close()
-
 
 def laad_profiel(gebruiker_id):
     """Laadt een profiel, of maakt een nieuw aan."""
