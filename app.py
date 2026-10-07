@@ -1014,6 +1014,7 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
 
         if st.button("🚀 Start gesprek", type="primary"):
             st.session_state.incheck_afgerond = True
+            st.session_state.profiel["gebruik_eigen_pantheon"] = gebruik_eigen
             st.session_state.profiel["laatste_incheck"] = incheck
             st.session_state.profiel["openheid"] = incheck.get("openheid", "")
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
