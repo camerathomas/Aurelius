@@ -1233,29 +1233,62 @@ if not st.session_state.geschiedenis:
     if not st.session_state.get("voorzitter") and pantheon:
         st.session_state.voorzitter = pantheon[0]
 
-    eerste_vraag_prompt = (
-        f"De gebruiker heeft net de incheck ingevuld:\n"
-        f"- Wat speelt er: {openheid}\n"
-        f"- Emotie: {emotie}\n"
-        f"- Overzicht: {overzicht}/10\n"
-        f"- Intentie: {intentie}\n"
-        f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
-        f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
-        f"Geen herhaling van de incheck, geen samenvatting. "
-        f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
-        f"en die het gesprek opent. Kort, direct, uitnodigend."
-    )
+    # Bepaal de vorm
+    vorm = st.session_state.profiel.get("gespreksvorm", "themagesprek")
+
+    if vorm == "vervolggesprek":
+        # Laad de context van de vorige sessie
+        from gespreksvormen import bouw_vervolg_context
+        from opslag import laad_sessie
+        
+        sessie_id = st.session_state.profiel.get("vervolg_sessie_id")
+        vorige_sessie = laad_sessie(gebruiker_id, sessie_id) if sessie_id else None
+        context = bouw_vervolg_context(vorige_sessie) if vorige_sessie else ""
+        
+        eerste_vraag_prompt = (
+            f"Dit is een vervolggesprek. De gebruiker bouwt voort op een "
+            f"eerdere sessie. Je hebt de context van die sessie gekregen.\n\n"
+            f"[CONTEXT VAN EERDERE SESSIE]\n{context}\n\n"
+            f"Jouw taak: stel nu ÉÉN openingsvraag die voortbouwt op wat er "
+            f"eerder gezegd is. Verwijs naar wat de gebruiker toen inbracht. "
+            f"Vraag wat er sindsdien veranderd is. "
+            f"Kort, direct, uitnodigend."
+        )
+    else:
+        # Gewone incheck-prompt
+        eerste_vraag_prompt = (
+            f"De gebruiker heeft net de incheck ingevuld:\n"
+            f"- Wat speelt er: {openheid}\n"
+            f"- Emotie: {emotie}\n"
+            f"- Overzicht: {overzicht}/10\n"
+            f"- Intentie: {intentie}\n"
+            f"- Waarde-volgorde: {' → '.join(volgorde)}\n\n"
+            f"Jouw taak: stel nu ÉÉN openingsvraag aan de gebruiker. "
+            f"Geen herhaling van de incheck, geen samenvatting. "
+            f"Gewoon één vraag die voortkomt uit wat de gebruiker heeft gezegd, "
+            f"en die het gesprek opent. Kort, direct, uitnodigend."
+        )
 
     filosoof_naam = st.session_state.get("voorzitter") or "marcus_aurelius"
     filosoof = FILOSOFEN[filosoof_naam]
 
+    from gespreksvormen import bouw_vorm_prompt, bouw_vervolg_context
+    
+    context = None
+    if vorm == "vervolggesprek":
+        sessie_id = st.session_state.profiel.get("vervolg_sessie_id")
+        vorige_sessie = laad_sessie(gebruiker_id, sessie_id) if sessie_id else None
+        context = bouw_vervolg_context(vorige_sessie) if vorige_sessie else ""
+    
+    vorm_prompt = bouw_vorm_prompt(vorm, context=context)
+    
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
         profiel=st.session_state.profiel,
         modus="Coach",
         fase="opening",
         vragen=VRAGEN_PER_FASE.get("opening", []),
-    )
+    ) + "\n\n" + vorm_prompt
 
     with st.spinner(f"{filosoof['naam']} denkt na..."):
         eerste_vraag = chat(
@@ -1278,6 +1311,7 @@ if not st.session_state.geschiedenis:
     st.session_state.beurten_teller[filosoof_naam] = (
         st.session_state.beurten_teller.get(filosoof_naam, 0) + 1
     )
+
 
 # ============================================================
 # Invoer van de gebruiker
@@ -1309,23 +1343,29 @@ if gebruiker_input:
         minuten, duur, st.session_state.wendingen_geweest
     )
 
+    # Bepaal de gespreksvorm en de actieve filosofen
+    from gespreksvormen import kies_filosofen, bouw_vorm_prompt, bouw_vervolg_context
+
+    vorm = st.session_state.profiel.get("gespreksvorm", "themagesprek")
+    actieve_filosofen = kies_filosofen(vorm, pantheon, st.session_state.voorzitter)
+
     if wending_nodig:
         eerdere_filosofen = [
             b["naam"] for b in st.session_state.geschiedenis
             if b["naam"] != "Jij"
         ]
         andere_filosofen = [
-            f for f in pantheon
+            f for f in actieve_filosofen
             if FILOSOFEN[f]["naam"] not in eerdere_filosofen
-        ] or pantheon
+        ] or actieve_filosofen
 
         if andere_filosofen:
             filosoof_naam = kies_filosoof(
                 st.session_state.profiel, andere_filosofen, gebruiker_input
             )
-        elif pantheon:
+        elif actieve_filosofen:
             filosoof_naam = kies_filosoof(
-                st.session_state.profiel, pantheon, gebruiker_input
+                st.session_state.profiel, actieve_filosofen, gebruiker_input
             )
         else:
             filosoof_naam = "marcus_aurelius"
@@ -1341,19 +1381,19 @@ if gebruiker_input:
             if b["naam"] != "Jij"
         ]
         kandidaten = [
-            f for f in pantheon
+            f for f in actieve_filosofen
             if FILOSOFEN[f]["naam"] not in eerdere_filosofen
         ]
         if not kandidaten:
-            kandidaten = pantheon
+            kandidaten = actieve_filosofen
 
         if kandidaten:
             filosoof_naam = kies_filosoof(
                 st.session_state.profiel, kandidaten, gebruiker_input
             )
-        elif pantheon:
+        elif actieve_filosofen:
             filosoof_naam = kies_filosoof(
-                st.session_state.profiel, pantheon, gebruiker_input
+                st.session_state.profiel, actieve_filosofen, gebruiker_input
             )
         else:
             filosoof_naam = "marcus_aurelius"
@@ -1362,20 +1402,29 @@ if gebruiker_input:
         st.session_state.huidige_wending_label = wending["naam"]
 
     else:
-        if pantheon and st.session_state.get("voorzitter"):
+        if actieve_filosofen and st.session_state.get("voorzitter"):
             filosoof_naam = kies_filosoof_met_verdeling(
-                pantheon,
+                actieve_filosofen,
                 st.session_state.voorzitter,
                 st.session_state.beurten_teller,
             )
-        elif pantheon:
+        elif actieve_filosofen:
             filosoof_naam = kies_filosoof(
-                st.session_state.profiel, pantheon, gebruiker_input
+                st.session_state.profiel, actieve_filosofen, gebruiker_input
             )
         else:
             filosoof_naam = "marcus_aurelius"
 
     filosoof = FILOSOFEN[filosoof_naam]
+
+    # Bouw de context voor een vervolggesprek
+    context = None
+    if vorm == "vervolggesprek":
+        sessie_id = st.session_state.profiel.get("vervolg_sessie_id")
+        vorige_sessie = laad_sessie(gebruiker_id, sessie_id) if sessie_id else None
+        context = bouw_vervolg_context(vorige_sessie) if vorige_sessie else ""
+
+    vorm_prompt = bouw_vorm_prompt(vorm, context=context)
 
     system_prompt = bouw_coach_prompt(
         filosoof=filosoof,
@@ -1383,7 +1432,7 @@ if gebruiker_input:
         modus="Coach",
         fase=fase,
         vragen=VRAGEN_PER_FASE.get(fase, [])
-    )
+    ) + "\n\n" + vorm_prompt
 
     if filosoof.get("naam") == "Socrates":
         aantal_socrates = sum(
@@ -1421,9 +1470,9 @@ if gebruiker_input:
     if einde_check:
         system_prompt += f"\n\n[EINDE SESSIE]\n{einde_check}"
 
-    context = st.session_state.geschiedenis[-max_historie:]
+    context_msgs = st.session_state.geschiedenis[-max_historie:]
     messages = []
-    for b in context[:-1]:
+    for b in context_msgs[:-1]:
         rol = "assistant" if b["naam"] != "Jij" else "user"
         messages.append({"role": rol, "content": b["tekst"]})
 
@@ -1471,7 +1520,6 @@ if gebruiker_input:
         bewaar_profiel(st.session_state.profiel)
     except Exception:
         pass
-
 
 # ============================================================
 # AFRONDING — automatisch starten zodra de coach heeft afgesloten
