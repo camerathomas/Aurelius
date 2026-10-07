@@ -1046,10 +1046,14 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
         # Keuze voor het pantheon
+        from tiers import heeft_toegang as _heeft_toegang
+
         eigen_pantheon = st.session_state.profiel.get("eigen_pantheon", [])
+        _tier = st.session_state.profiel.get("tier", "sessie")
+        _level = st.session_state.profiel.get("level", 1)
         gebruik_eigen = False
 
-        if eigen_pantheon:
+        if eigen_pantheon and _heeft_toegang(_tier, _level, "eigen_pantheon"):
             st.markdown("---")
             st.markdown("### Met wie wil je spreken?")
 
@@ -1729,10 +1733,14 @@ if st.session_state.get("toon_duur_keuze", False):
     )
 
     # Keuze voor het pantheon
+    from tiers import heeft_toegang as _heeft_toegang
+
     eigen_pantheon = st.session_state.profiel.get("eigen_pantheon", [])
+    _tier = st.session_state.profiel.get("tier", "sessie")
+    _level = st.session_state.profiel.get("level", 1)
     gebruik_eigen = False
 
-    if eigen_pantheon:
+    if eigen_pantheon and _heeft_toegang(_tier, _level, "eigen_pantheon"):
         st.markdown("---")
         st.markdown("### Met wie wil je spreken?")
 
