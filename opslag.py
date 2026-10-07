@@ -69,7 +69,11 @@ def initialiseer():
         cursor.execute("ALTER TABLE profielen ADD COLUMN eigen_pantheon TEXT")
     except Exception:
         pass
-
+    try:
+        cursor.execute("ALTER TABLE profielen ADD COLUMN sessie_afgerond INTEGER DEFAULT 1")
+    except Exception:
+        pass
+        
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS berichten (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
