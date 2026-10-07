@@ -115,7 +115,7 @@ def bewaar_profiel(profiel):
         (gebruiker_id, waarden, laatste_incheck, themas, waarde_volgorde,
          sessie_duur, heeft_eerder_gesproken, sessie_tijd, sessie_start,
          laatste_bericht, level, tier, favoriete_filosoof,
-         eigen_pantheon, bijgewerkt)
+         eigen_pantheon, sessie_afgerond, bijgewerkt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """, (
         profiel["gebruiker_id"],
@@ -168,6 +168,9 @@ def laad_profiel(gebruiker_id):
                 "eigen_pantheon": (
                     json.loads(rij[13]) if len(rij) > 13 and rij[13] else []
                 ),
+                "sessie_afgerond": (
+                    bool(rij[14]) if len(rij) > 14 and rij[14] is not None else True
+                ),
             }
     except Exception:
         pass
@@ -187,6 +190,7 @@ def laad_profiel(gebruiker_id):
         "tier": "sessie",
         "favoriete_filosoof": None,
         "eigen_pantheon": [],
+        "sessie_afgerond": True,
     }
 
 
