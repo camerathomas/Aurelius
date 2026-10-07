@@ -50,6 +50,7 @@ def initialiseer():
         ("welkom_geweest", "INTEGER DEFAULT 0"),
         ("gesprekken_gehad", "INTEGER DEFAULT 0"),
         ("sessies_gekocht", "INTEGER DEFAULT 1"),
+        ("gespreksvorm", "TEXT DEFAULT 'themagesprek'"),
     ]
 
     for kolom_naam, kolom_def in extra_kolommen:
@@ -111,10 +112,10 @@ def bewaar_profiel(profiel):
          laatste_bericht, level, tier, favoriete_filosoof,
          eigen_pantheon, sessie_afgerond, gebruik_eigen_pantheon,
          proefsessie_geweest, incheck_gedaan, betaald, welkom_geweest,
-         gesprekken_gehad, sessies_gekocht)
+         gesprekken_gehad, sessies_gekocht, gespreksvorm)
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP,
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?)
+                ?, ?, ?, ?, ?, ?, ?)
     """, (
         profiel["gebruiker_id"],
         json.dumps(profiel.get("waarden", {})),
@@ -138,8 +139,8 @@ def bewaar_profiel(profiel):
         1 if profiel.get("welkom_geweest", False) else 0,
         profiel.get("gesprekken_gehad", 0),
         profiel.get("sessies_gekocht", 1),
+        profiel.get("gespreksvorm", "themagesprek"),
     ))
-
     conn.commit()
     conn.close()
 
@@ -198,8 +199,12 @@ def laad_profiel(gebruiker_id):
                 ),
                 "sessies_gekocht": (
                     int(rij[22]) if len(rij) > 22 and rij[22] else 1
+                 ),
+                "gespreksvorm": (
+                    rij[23] if len(rij) > 23 and rij[23] else "themagesprek"
                 ),
-            }
+            } 
+
     except Exception as e:
         print(f"FOUT bij laden profiel '{gebruiker_id}': {e}")
 
@@ -227,6 +232,7 @@ def laad_profiel(gebruiker_id):
         "welkom_geweest": False,
         "gesprekken_gehad": 0,
         "sessies_gekocht": 1,
+        "gespreksvorm": "themagesprek",
     }
 
 
