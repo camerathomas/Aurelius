@@ -28,6 +28,7 @@ TIERS = {
             "elevenlabs": False,
             "eigen_pantheon": False,
             "gespreksvormen": False,
+            "vervolggesprek": False,            
         },
     },
     "basic": {
@@ -45,6 +46,7 @@ TIERS = {
             "elevenlabs": False,
             "eigen_pantheon": "level_5",
             "gespreksvormen": "level_10",
+            "vervolggesprek": False,            
         },
     },
     "gold": {
@@ -62,6 +64,7 @@ TIERS = {
             "elevenlabs": True,
             "eigen_pantheon": True,
             "gespreksvormen": True,
+            "vervolggesprek": True,            
         },
     },
 }
