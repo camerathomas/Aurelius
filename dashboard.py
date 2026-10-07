@@ -31,6 +31,9 @@ def toon_dashboard(gebruiker_id, profiel):
         _toon_instellingen(profiel, gebruiker_id)
 
 
+# ============================================================
+# Archief
+# ============================================================
 def _toon_archief(gebruiker_id):
     """Toont de gearchiveerde sessies."""
     st.markdown("### Jouw archief")
@@ -108,13 +111,20 @@ def _toon_archief(gebruiker_id):
                 )
 
 
+# ============================================================
+# Voortgang
+# ============================================================
 def _toon_voortgang(profiel):
     """Toont de voortgang van de gebruiker."""
     st.markdown("### Jouw voortgang")
     st.markdown(f"**Level:** {profiel.get('level', 1)}")
+    st.markdown(f"**Tier:** {profiel.get('tier', 'sessie')}")
     st.caption("Meer statistieken volgen later.")
 
 
+# ============================================================
+# Favorieten
+# ============================================================
 def _toon_favorieten(profiel):
     """Toont de favorieten van de gebruiker."""
     st.markdown("### Jouw favorieten")
@@ -122,18 +132,16 @@ def _toon_favorieten(profiel):
     level = profiel.get("level", 1)
     tier = profiel.get("tier", "sessie")
 
-    # Favoriete filosoof (drempel 5)
     _toon_favoriet_filosoof(profiel, level, tier)
 
     st.markdown("---")
 
-    # Eigen pantheon
     _toon_eigen_pantheon(profiel, level, tier)
+
 
 def _toon_favoriet_filosoof(profiel, level, tier):
     """Toont de keuze voor de favoriete filosoof."""
     from tiers import heeft_toegang, beschikbare_filosofen, drempel_van
-    from filosofen import FILOSOFEN
 
     st.markdown("#### Favoriete filosoof")
     st.caption(
@@ -147,7 +155,8 @@ def _toon_favoriet_filosoof(profiel, level, tier):
             "Favoriete filosoof",
             value="",
             disabled=True,
-            placeholder=f"Beschikbaar vanaf level {drempel}" if drempel else "Niet beschikbaar",
+            placeholder=f"Beschikbaar vanaf level {drempel}"
+            if drempel else "Niet beschikbaar",
             key="favoriete_filosoof_disabled"
         )
         return
@@ -197,7 +206,6 @@ def _toon_favoriet_filosoof(profiel, level, tier):
 def _toon_eigen_pantheon(profiel, level, tier):
     """Toont de keuze voor het eigen pantheon."""
     from tiers import beschikbare_filosofen
-    from filosofen import FILOSOFEN
 
     st.markdown("#### Eigen pantheon")
     st.caption(
@@ -224,16 +232,18 @@ def _toon_eigen_pantheon(profiel, level, tier):
     eigen = list(profiel.get("eigen_pantheon", []))
     favoriet = profiel.get("favoriete_filosoof")
 
-    # Zorg dat de favoriet erin zit
-    if favoriet and favoriet not in eigen:
-        if len(eigen) >= 5:
-            eigen = eigen[:-1] + [favoriet]
-        else:
-            eigen.append(favoriet)
+    # Als er een favoriet is, dan zijn er vier keuzes.
+    # Anders zijn er vijf keuzes.
+    if favoriet:
+        aantal_keuzes = 4
+        if favoriet in eigen:
+            eigen.remove(favoriet)
+    else:
+        aantal_keuzes = 5
 
-    # Toon de vijf keuzes
+    # Toon de keuzes
     nieuwe_eigen = []
-    for i in range(5):
+    for i in range(aantal_keuzes):
         huidige = eigen[i] if i < len(eigen) else None
         index = opties.index(huidige) if huidige in opties else 0
 
@@ -249,19 +259,25 @@ def _toon_eigen_pantheon(profiel, level, tier):
         )
         nieuwe_eigen.append(keuze)
 
-    # Zorg dat de favoriet er altijd in zit
-    if favoriet and favoriet not in nieuwe_eigen:
-        nieuwe_eigen[-1] = favoriet
-        st.caption(
-            f"Let op: {FILOSOFEN[favoriet]['naam']} is je favoriet, "
-            f"en is daarom op de laatste plek gezet."
+    # Voeg de favoriet toe als die er is
+    if favoriet:
+        nieuwe_eigen.append(favoriet)
+        st.markdown(
+            f"**Jouw favoriet:** "
+            f"{FILOSOFEN[favoriet]['emoji']} {FILOSOFEN[favoriet]['naam']} "
+            f"(staat vast op de laatste plek)"
         )
 
+    # Sla het pantheon op als het veranderd is
     if nieuwe_eigen != profiel.get("eigen_pantheon", []):
         profiel["eigen_pantheon"] = nieuwe_eigen
         bewaar_profiel(profiel)
         st.success("Eigen pantheon opgeslagen.")
 
+
+# ============================================================
+# Instellingen
+# ============================================================
 def _toon_instellingen(profiel, gebruiker_id):
     """Toont de instellingen."""
     st.markdown("### Instellingen")
