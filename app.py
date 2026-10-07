@@ -76,6 +76,8 @@ except Exception as e:
     st.error(f"⚠️ **Database-fout:** {e}")
     st.stop()
 
+# API-sleutel voor Gemini
+api_key = st.secrets["connections"]["aurelius"]["GEMINI_API_KEY"]
 
 # ============================================================
 # Hulp-functies
