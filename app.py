@@ -79,6 +79,7 @@ except Exception as e:
 # API-sleutel voor Gemini
 api_key = st.secrets["connections"]["aurelius"]["GEMINI_API_KEY"]
 
+
 # ============================================================
 # Hulp-functies
 # ============================================================
@@ -124,6 +125,7 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     except Exception as e:
         st.error(f"Fout bij archiveren: {e}")
 
+
 def reset_voor_nieuwe_sessie():
     """Reset alles behalve het profiel, zodat een nieuwe sessie kan beginnen."""
     st.session_state.geschiedenis = []
@@ -147,6 +149,7 @@ def reset_voor_nieuwe_sessie():
     st.session_state.huidige_wending = None
     st.session_state.beurten_teller = {}
     st.session_state.voorzitter = None
+    st.session_state.pantheon = None          # ← nieuw: pantheon resetten
     st.session_state.eerste_gesprek_gestart = False
     st.session_state.profiel["sessie_tijd"] = 0
     st.session_state.profiel["sessie_start"] = time.time()
@@ -204,7 +207,6 @@ def bouw_pantheon_voor_sessie(profiel):
 
     huidig_level = profiel.get("level", 1)
     return PANTHEON_PER_LEVEL.get(huidig_level, PANTHEON_PER_LEVEL.get(1, []))
-
 
 # ============================================================
 # Fasen
@@ -299,7 +301,8 @@ INCHECK_VRAGEN = [
     {"sleutel": "volgorde", "vraag": "Zet deze vier op volgorde van belangrijkheid.",
      "type": "sorteren", "opties": ["Respect", "Vertrouwen", "Verbinding", "Analyse"]},
     {"sleutel": "duur", "vraag": "Hoe lang heb je?", "type": "keuze",
-     "opties": ["Flitsgesprek (5 min)", "Kort (10 min)", "Standaard (20 min)", "Diep (30 min)"]},
+     "opties": ["Flitsgesprek (5 min)", "Kort gesprek (10 min)",
+                "Standaard (20 min)", "Diep (30 min)"]},
     {"sleutel": "modus", "vraag": "Wie wil je spreken?", "type": "keuze",
      "opties": ["Automatisch — de coach kiest", "Zelf kiezen", "Verrassen"]},
 ]
@@ -331,7 +334,18 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.subheader("🎭 Pantheon")
 
-pantheon = PANTHEON_PER_LEVEL.get(level, PANTHEON_PER_LEVEL.get(1, []))
+# Bepaal welk pantheon getoond wordt in de sidebar:
+# het eigen pantheon als de gebruiker dat heeft gekozen, anders het standaard.
+_sidebar_pantheon = st.session_state.get("pantheon")
+if not _sidebar_pantheon:
+    _eigen = st.session_state.get("profiel", {}).get("eigen_pantheon", [])
+    _gebruik_eigen = st.session_state.get("profiel", {}).get("gebruik_eigen_pantheon", False)
+    if _gebruik_eigen and _eigen:
+        _sidebar_pantheon = _eigen
+    else:
+        _sidebar_pantheon = PANTHEON_PER_LEVEL.get(level, PANTHEON_PER_LEVEL.get(1, []))
+
+pantheon = _sidebar_pantheon  # wordt verderop in het gesprek gebruikt
 
 with st.sidebar.expander("Jouw pantheon", expanded=False):
     for f in pantheon:
@@ -384,6 +398,7 @@ if st.sidebar.button("🗑️ Wis alle gesprekken"):
     except Exception as e:
         st.sidebar.error(f"Fout: {e}")
 
+
 # ============================================================
 # Check: is er een gebruikersnaam?
 # ============================================================
@@ -398,6 +413,7 @@ if not gebruiker_id or gebruiker_id.strip() == "":
         "Als je al eerder bent geweest, vul dan dezelfde naam in."
     )
     st.stop()
+
 # ============================================================
 # Sessie-state
 # ============================================================
@@ -445,15 +461,20 @@ if "beurten_teller" not in st.session_state:
     st.session_state.beurten_teller = {}
 if "voorzitter" not in st.session_state:
     st.session_state.voorzitter = None
+if "pantheon" not in st.session_state:
+    st.session_state.pantheon = None
 if "eerste_gesprek_gestart" not in st.session_state:
     st.session_state.eerste_gesprek_gestart = False
 if "toon_dashboard" not in st.session_state:
     st.session_state.toon_dashboard = False
+if "toon_duur_keuze" not in st.session_state:
+    st.session_state.toon_duur_keuze = False
+
+# Profiel-velden
 if "gesprekken_gehad" not in st.session_state.profiel:
     st.session_state.profiel["gesprekken_gehad"] = 0
 if "sessies_gekocht" not in st.session_state.profiel:
     st.session_state.profiel["sessies_gekocht"] = 1
-    
 if "welkom_geweest" not in st.session_state.profiel:
     st.session_state.profiel["welkom_geweest"] = False
 if "proefsessie_geweest" not in st.session_state.profiel:
@@ -464,16 +485,22 @@ if "betaald" not in st.session_state.profiel:
     st.session_state.profiel["betaald"] = False
 if "incheck_gedaan" not in st.session_state.profiel:
     st.session_state.profiel["incheck_gedaan"] = False
-
 if "level" not in st.session_state.profiel:
     st.session_state.profiel["level"] = 1
+if "tier" not in st.session_state.profiel:
+    st.session_state.profiel["tier"] = "sessie"
+if "gebruik_eigen_pantheon" not in st.session_state.profiel:
+    st.session_state.profiel["gebruik_eigen_pantheon"] = False
 
+# Nieuwe gebruiker? Laad het profiel opnieuw
 if st.session_state.get("huidige_gebruiker") != gebruiker_id:
     st.session_state.profiel = laad_profiel(gebruiker_id)
     if "level" not in st.session_state.profiel:
         st.session_state.profiel["level"] = 1
     if "tier" not in st.session_state.profiel:
         st.session_state.profiel["tier"] = "sessie"
+    if "gebruik_eigen_pantheon" not in st.session_state.profiel:
+        st.session_state.profiel["gebruik_eigen_pantheon"] = False
     st.session_state.huidige_gebruiker = gebruiker_id
 
     if st.session_state.profiel.get("sessie_afgerond", True):
@@ -502,13 +529,17 @@ if st.session_state.get("huidige_gebruiker") != gebruiker_id:
             st.session_state.incheck_stap = 0
             st.session_state.incheck_afgerond = False
 
+
 # ============================================================
 # Hoofdinterface
 # ============================================================
 st.title("🏛️ Aurelius")
 st.caption("Een filosofische coach, geïnspireerd door Marcus Aurelius.")
-st.write("sessie_tijd:", st.session_state.profiel.get("sessie_tijd", 0))
-st.write("sessie_duur:", st.session_state.profiel.get("sessie_duur", 0))
+
+# Tijdsdebug (alleen tijdens ontwikkeling)
+# st.write("sessie_tijd:", st.session_state.profiel.get("sessie_tijd", 0))
+# st.write("sessie_duur:", st.session_state.profiel.get("sessie_duur", 0))
+
 
 # ============================================================
 # Dashboard
@@ -521,6 +552,7 @@ if st.session_state.get("toon_dashboard", False):
     from dashboard import toon_dashboard
     toon_dashboard(gebruiker_id, st.session_state.profiel)
     st.stop()
+
 
 # ============================================================
 # Welkomstscherm
@@ -555,7 +587,6 @@ if not st.session_state.profiel.get("welkom_geweest", False):
         st.rerun()
 
     st.stop()
-
 
 # ============================================================
 # PROEFSESSIE — monoliet, los van de rest van de app
@@ -837,6 +868,7 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 
     st.stop()
 
+
 # ============================================================
 # BETAALSCHERM
 # ============================================================
@@ -936,6 +968,7 @@ if st.session_state.get("toon_betaalscherm"):
         st.rerun()
 
     st.stop()
+
 # ============================================================
 # Incheck — eenmalig, na betaling
 # ============================================================
@@ -1012,6 +1045,22 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.markdown(f"- **Volgorde**: {' → '.join(volgorde)}")
         st.markdown(f"- **Duur**: {incheck.get('duur', '—')}")
 
+        # Keuze voor het pantheon
+        eigen_pantheon = st.session_state.profiel.get("eigen_pantheon", [])
+        gebruik_eigen = False
+
+        if eigen_pantheon:
+            st.markdown("---")
+            st.markdown("### Met wie wil je spreken?")
+
+            pantheon_keuze = st.radio(
+                "Pantheon",
+                ["Standaard pantheon van dit level", "Mijn eigen pantheon"],
+                label_visibility="collapsed",
+                key="pantheon_keuze_incheck"
+            )
+            gebruik_eigen = pantheon_keuze == "Mijn eigen pantheon"
+
         if st.button("🚀 Start gesprek", type="primary"):
             st.session_state.incheck_afgerond = True
             st.session_state.profiel["gebruik_eigen_pantheon"] = gebruik_eigen
@@ -1020,7 +1069,12 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.session_state.profiel["themas"] = [incheck.get("emotie", "")]
             st.session_state.profiel["waarde_volgorde"] = incheck.get("volgorde", [])
 
-            duur_map = {"Flitsgesprek (5 min)": 5, "Kort (10 min)": 10, "Standaard (20 min)": 20, "Diep (30 min)": 30}
+            duur_map = {
+                "Flitsgesprek (5 min)": 5,
+                "Kort gesprek (10 min)": 10,
+                "Standaard (20 min)": 20,
+                "Diep (30 min)": 30,
+            }
             gekozen_duur = incheck.get("duur", "")
             st.session_state.profiel["sessie_duur"] = duur_map.get(gekozen_duur, 10)
             st.session_state.profiel["sessie_start"] = time.time()
@@ -1038,12 +1092,15 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.session_state.beurten_teller = {}
 
             nieuw_pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
+            st.session_state.pantheon = nieuw_pantheon
             st.session_state.voorzitter = nieuw_pantheon[0] if nieuw_pantheon else "marcus_aurelius"
 
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
     st.stop()
+
+
 # ============================================================
 # Reset voor het eerste gesprek
 # ============================================================
@@ -1067,6 +1124,8 @@ if (st.session_state.profiel.get("incheck_gedaan", False)
     st.session_state.pantheon = start_pantheon
     if start_pantheon:
         st.session_state.voorzitter = start_pantheon[0]
+
+
 # ============================================================
 # Check: mag deze gebruiker nog een gesprek voeren?
 # ============================================================
@@ -1102,6 +1161,7 @@ if tier == "sessie":
                 st.rerun()
 
         st.stop()
+
 # ============================================================
 # Gesprek
 # ============================================================
@@ -1113,6 +1173,11 @@ fase = bepaal_fase(st.session_state.profiel)
 minuten = bereken_sessie_minuten(st.session_state.profiel)
 duur = veilige_duur(st.session_state.profiel)
 resterend = max(0, duur - minuten)
+
+# Zorg dat we altijd een geldig pantheon hebben voor deze sessie
+if not st.session_state.get("pantheon"):
+    st.session_state.pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
+pantheon = st.session_state.pantheon
 
 st.markdown("---")
 col1, col2, col3 = st.columns([2, 2, 1])
@@ -1150,6 +1215,7 @@ if incheck:
 
 gesprek_container = st.container()
 
+
 def toon_bericht(naam, tekst, icoon, tijd=None):
     with gesprek_container:
         with st.chat_message(naam, avatar=icoon):
@@ -1159,8 +1225,10 @@ def toon_bericht(naam, tekst, icoon, tijd=None):
                 st.markdown(f"**{naam}**")
             st.markdown(tekst)
 
+
 for b in st.session_state.geschiedenis:
     toon_bericht(b["naam"], b["tekst"], b["icoon"], b.get("tijd"))
+
 
 # Eerste coach-beurt
 if not st.session_state.geschiedenis:
@@ -1170,11 +1238,8 @@ if not st.session_state.geschiedenis:
     intentie = incheck.get("intentie", "")
     volgorde = incheck.get("volgorde", [])
 
-    start_pantheon = bouw_pantheon_voor_sessie(st.session_state.profiel)
-    st.session_state.pantheon = start_pantheon
-
-    if not st.session_state.get("voorzitter") and start_pantheon:
-        st.session_state.voorzitter = start_pantheon[0]
+    if not st.session_state.get("voorzitter") and pantheon:
+        st.session_state.voorzitter = pantheon[0]
 
     eerste_vraag_prompt = (
         f"De gebruiker heeft net de incheck ingevuld:\n"
@@ -1543,6 +1608,7 @@ if st.session_state.evaluatie_gestart:
         else:
             st.session_state.evaluatie_afgerond = True
 
+
 # ============================================================
 # EINDSCHERM
 # ============================================================
@@ -1645,49 +1711,14 @@ if (st.session_state.get("archief_gevraagd", False)
             st.session_state.eind_keuze_gemaakt = True
             st.rerun()
 
-# ============================================================
-# Duurkeuze voor een nieuwe sessie
-# ============================================================
-if st.session_state.get("toon_duur_keuze", False):
-    st.markdown("---")
-    st.markdown("## 🕐 Hoe lang heb je vandaag?")
-    st.caption("Kies hoe lang het gesprek mag duren.")
-
-    keuze = st.radio(
-        "Duur",
-        ["Flitsgesprek (5 min)", "Kort gesprek (10 min)",
-         "Standaard (20 min)", "Diep (30 min)"],
-        label_visibility="collapsed",
-        key="duur_keuze_nieuw"
-    )
-
-    if st.button("Start gesprek", type="primary"):
-        duur_map = {
-            "Flitsgesprek (5 min)": 5,
-            "Kort gesprek (10 min)": 10,
-            "Standaard (20 min)": 20,
-            "Diep (30 min)": 30,
-        }
-        st.session_state.profiel["sessie_duur"] = duur_map.get(keuze, 10)
-        st.session_state.toon_duur_keuze = False
-
-        reset_voor_nieuwe_sessie()
-        st.rerun()
-
-    st.stop()
-
-if st.session_state.get("einde", False):
-    st.markdown("---")
-    st.markdown("## 👋 Bedankt voor het gesprek")
-    st.caption("Tot de volgende keer.")
 
 # ============================================================
-# Duurkeuze voor een nieuwe sessie
+# Parameters voor een nieuw gesprek
 # ============================================================
 if st.session_state.get("toon_duur_keuze", False):
     st.markdown("---")
-    st.markdown("## 🕐 Hoe lang heb je vandaag?")
-    st.caption("Kies hoe lang het gesprek mag duren.")
+    st.markdown("## 🕐 Parameters voor een nieuw gesprek")
+    st.caption("Kies hoe lang het gesprek mag duren, en met wie je wilt spreken.")
 
     keuze = st.radio(
         "Duur",
@@ -1730,3 +1761,12 @@ if st.session_state.get("toon_duur_keuze", False):
         st.rerun()
 
     st.stop()
+
+
+# ============================================================
+# Einde
+# ============================================================
+if st.session_state.get("einde", False):
+    st.markdown("---")
+    st.markdown("## 👋 Bedankt voor het gesprek")
+    st.caption("Tot de volgende keer.")
