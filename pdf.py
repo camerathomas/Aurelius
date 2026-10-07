@@ -204,7 +204,7 @@ def _afsluiter_html(afsluiter):
 
     naam = afsluiter.get("naam", "?")
     tekst = afsluiter.get("tekst", "")
-    tekst_html = _verwijder_emojis(_alinees(tekst)) if False else _verwijder_emojis(_alineas(tekst))
+    tekst_html = _verwijder_emojis(_alineas(tekst))
 
     return f"""
     <div class="citaat">
