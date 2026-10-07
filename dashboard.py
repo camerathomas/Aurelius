@@ -202,10 +202,9 @@ def _toon_favoriet_filosoof(profiel, level, tier):
         st.success("Favoriete filosoof opgeslagen.")
         st.rerun()
 
-
 def _toon_eigen_pantheon(profiel, level, tier):
     """Toont de keuze voor het eigen pantheon."""
-    from tiers import beschikbare_filosofen
+    from tiers import heeft_toegang, beschikbare_filosofen, drempel_van
 
     st.markdown("#### Eigen pantheon")
     st.caption(
@@ -213,12 +212,17 @@ def _toon_eigen_pantheon(profiel, level, tier):
         "Je favoriete filosoof zit er altijd in."
     )
 
-    if tier == "sessie":
+    # Toegangscheck op basis van tier én level
+    if not heeft_toegang(tier, level, "eigen_pantheon"):
+        drempel = drempel_van("eigen_pantheon")
         st.text_input(
             "Eigen pantheon",
             value="",
             disabled=True,
-            placeholder="Beschikbaar met een abonnement",
+            placeholder=(
+                f"Beschikbaar vanaf level {drempel}"
+                if drempel else "Beschikbaar met een abonnement"
+            ),
             key="eigen_pantheon_disabled"
         )
         return
@@ -273,6 +277,7 @@ def _toon_eigen_pantheon(profiel, level, tier):
         profiel["eigen_pantheon"] = nieuwe_eigen
         bewaar_profiel(profiel)
         st.success("Eigen pantheon opgeslagen.")
+
 
 
 # ============================================================
