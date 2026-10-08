@@ -1753,7 +1753,7 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
 
 # ============================================================
-# NA HET ARCHIEF: drie knoppen
+# NA HET ARCHIEF: twee knoppen
 # ============================================================
 if (st.session_state.get("archief_gevraagd", False)
         and not st.session_state.get("eind_keuze_gemaakt", False)):
@@ -1765,7 +1765,7 @@ if (st.session_state.get("archief_gevraagd", False)
     st.markdown("---")
     st.markdown("### Wat wil je nu doen?")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
         if st.button("☕ Nazit", key="nazit_knop"):
@@ -1776,12 +1776,6 @@ if (st.session_state.get("archief_gevraagd", False)
     with col2:
         if st.button("🔄 Nieuwe sessie", key="nieuwe_sessie_knop"):
             st.session_state.toon_duur_keuze = True
-            st.rerun()
-
-    with col3:
-        if st.button("👋 Afsluiten", key="afsluiten_knop"):
-            st.session_state.einde = True
-            st.session_state.eind_keuze_gemaakt = True
             st.rerun()
 
 
