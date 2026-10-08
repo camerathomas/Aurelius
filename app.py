@@ -151,11 +151,13 @@ def reset_voor_nieuwe_sessie():
     st.session_state.voorzitter = None
     st.session_state.pantheon = None
     st.session_state.eerste_gesprek_gestart = False
+    
     st.session_state.profiel["sessie_tijd"] = 0
     st.session_state.profiel["sessie_start"] = time.time()
     st.session_state.profiel["laatste_bericht"] = time.time()
     st.session_state.profiel["fase_override"] = None
     st.session_state.profiel["verlenging_geweest"] = False
+    st.session_state.profiel["tijd_gepauzeerd"] = False
     st.rerun()
 
 
