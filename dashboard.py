@@ -14,8 +14,8 @@ def toon_dashboard(gebruiker_id, profiel):
     st.title("🏛️ Jouw dashboard")
     st.caption(f"Welkom terug, {gebruiker_id}.")
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["Archief", "Voortgang", "Favorieten", "Instellingen"]
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["Archief", "Voortgang", "Favorieten", "Instellingen", "Gespreksvormen"]
     )
 
     with tab1:
@@ -30,6 +30,8 @@ def toon_dashboard(gebruiker_id, profiel):
     with tab4:
         _toon_instellingen(profiel, gebruiker_id)
 
+    with tab5:
+        _toon_gespreksvormen(profiel, gebruiker_id)
 
 # ============================================================
 # Archief
@@ -313,7 +315,55 @@ def _toon_eigen_pantheon(profiel, level, tier):
         bewaar_profiel(profiel)
         st.success("Eigen pantheon opgeslagen.")
 
+# ============================================================
+# Gesreksvormen
+# ============================================================
 
+def _toon_gespreksvormen(profiel, gebruiker_id):
+    from gespreksvormen import GESPREKSVORMEN
+    from tiers import heeft_toegang, drempel_van
+    
+    tier = profiel.get("tier", "sessie")
+    level = profiel.get("level", 1)
+    
+    st.markdown("### Kies een gespreksvorm")
+    st.caption("Waarmee wil je beginnen?")
+    
+    if not heeft_toegang(tier, level, "gespreksvormen"):
+        drempel = drempel_van("gespreksvormen")
+        st.text_input(
+            "Gespreksvormen",
+            value="",
+            disabled=True,
+            placeholder=f"Beschikbaar vanaf level {drempel}" if drempel else "Beschikbaar met een abonnement",
+            key="gespreksvormen_disabled",
+        )
+        return
+    
+    # De drie vormen: themagesprek, grote_dialoog, tweegesprek
+    vormen = ["themagesprek", "grote_dialoog", "tweegesprek"]
+    
+    col1, col2 = st.columns(2)
+    
+    for i, naam in enumerate(vormen):
+        vorm = GESPREKSVORMEN[naam]
+        kolom = col1 if i % 2 == 0 else col2
+        with kolom:
+            st.markdown(f"**{vorm['icoon']} {vorm['naam']}**")
+            st.caption(vorm["beschrijving"])
+            if st.button(
+                "Start",
+                key=f"vorm_{naam}",
+                use_container_width=True,
+                type="primary",
+            ):
+                st.session_state.profiel["gespreksvorm"] = naam
+                st.session_state.profiel["sessie_afgerond"] = False
+                from opslag import bewaar_profiel
+                bewaar_profiel(st.session_state.profiel)
+                st.session_state.toon_dashboard = False
+                st.session_state.toon_duur_keuze = True
+                st.rerun()
 
 # ============================================================
 # Instellingen
