@@ -111,20 +111,30 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
                 thema = b["tekst"][:60]
                 break
 
+
     try:
+        st.write(f"DEBUG: archiveer_sessie draait")
+        st.write(f"DEBUG: gebruiker_id = {gebruiker_id}")
+        st.write(f"DEBUG: thema = {(thema[:50] + '...') if thema and len(thema) > 50 else thema}")
+        st.write(f"DEBUG: duur = {duur} (type: {type(duur).__name__})")
+        st.write(f"DEBUG: pantheon = {pantheon_nu}")
+        st.write(f"DEBUG: gesprek heeft {len(gesprek)} berichten")
+        st.write(f"DEBUG: rondes = {type(rondes).__name__}")
+        st.write(f"DEBUG: afsluiter = {type(afsluiter).__name__}")
+
         bewaar_sessie(
             gebruiker_id=gebruiker_id,
             thema=thema,
             incheck=incheck,
-            gesprek=geschiedenis,
+            gesprek=gesprek,
             rondes=rondes or {},
             afsluiter=afsluiter or {},
             duur_minuten=duur,
             pantheon=pantheon_nu,
         )
+        st.success("DEBUG: sessie opgeslagen!")
     except Exception as e:
-        st.error(f"Fout bij archiveren: {e}")
-
+        st.error(f"FOUT bij archiveren: {type(e).__name__}: {e}")
 
 def reset_voor_nieuwe_sessie():
     """Reset alles behalve het profiel, zodat een nieuwe sessie kan beginnen."""
