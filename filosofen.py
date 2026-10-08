@@ -1575,6 +1575,12 @@ PANTHEON_PER_LEVEL = {
     8: ["heidegger", "wittgenstein", "sartre", "foucault", "derrida"],
     9: ["meister_eckhart", "teresa_van_avila", "johannes_van_het_kruis", "jakob_bohme", "hildegard_van_bingen"],
     10: ["ibn_khaldun", "avicenna", "al_ghazali", "zhu_xi", "wang_yangming"],
+    10: ["ibn_khaldun", "avicenna", "al_ghazali", "zhu_xi", "wang_yangming"],
+    11: ["francis_bacon", "david_hume", "voltaire", "rousseau", "christina_van_zweden"],
+    12: ["kant", "hegel", "popper", "feyerabend", "russell"],
+    13: ["thomas_kuhn", "einstein", "de_bono", "mill", "tumarkin"],
+    14: ["hermes_trismegistos", "valentinus", "ficino", "bruno", "luther"],
+    15: ["roodkapje", "pinocchio", "sneeuwwitje", "doornroosje", "zeven_dwergen"],
 }
 
 # ============================================================
@@ -1590,5 +1596,5 @@ def beschikbare_filosofen(level):
     """Geeft de filosofen die beschikbaar zijn voor dit level."""
     if level in PANTHEON_PER_LEVEL:
         return PANTHEON_PER_LEVEL[level]
-    # Level 7+: alle filosofen die de gebruiker heeft vrijgespeeld
+    # Level 16+: alle filosofen die de gebruiker heeft vrijgespeeld
     return [f for f in FILOSOFEN if FILOSOFEN[f]["level"] <= level]
