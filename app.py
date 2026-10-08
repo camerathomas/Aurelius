@@ -525,11 +525,6 @@ if "profiel" not in st.session_state:
             st.session_state.incheck_stap = 0
             st.session_state.incheck_afgerond = False
 
-# DEBUG — tijdelijk
-st.sidebar.write("### DEBUG")
-st.sidebar.write("profiel level:", st.session_state.profiel.get("level"))
-st.sidebar.write("profiel tier:", st.session_state.profiel.get("tier"))
-st.sidebar.write("_is_fallback:", st.session_state.profiel.get("_is_fallback"))
 with st.sidebar.expander("Volledig profiel"):
     st.json(st.session_state.profiel)
 # ============================================================
