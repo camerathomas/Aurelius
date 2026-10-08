@@ -158,6 +158,10 @@ def reset_voor_nieuwe_sessie():
     st.session_state.profiel["fase_override"] = None
     st.session_state.profiel["verlenging_geweest"] = False
     st.session_state.profiel["tijd_gepauzeerd"] = False
+    st.write(f"DEBUG: sessie_tijd = {st.session_state.profiel['sessie_tijd']}")
+    st.write(f"DEBUG: sessie_duur = {st.session_state.profiel['sessie_duur']}")
+    st.write(f"DEBUG: fase_override = {st.session_state.profiel.get('fase_override')}")
+    st.write(f"DEBUG: evaluatie_gestart = {st.session_state.evaluatie_gestart}")    
     st.rerun()
 
 
