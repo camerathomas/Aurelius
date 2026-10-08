@@ -244,6 +244,12 @@ VERSNELLING = 1
 
 
 def update_sessie_tijd(profiel):
+    # Als de tijd gepauzeerd is (omdat de gebruiker moet kiezen),
+    # loopt de klok niet door.
+    if profiel.get("tijd_gepauzeerd", False):
+        profiel["laatste_bericht"] = time.time()
+        return profiel
+
     nu = time.time()
     laatste = profiel.get("laatste_bericht", nu)
     verschil = (nu - laatste) * VERSNELLING
