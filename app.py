@@ -1242,8 +1242,11 @@ _laatste_is_coach = (
     _laatste_bericht is not None
     and _laatste_bericht.get("naam") != "Jij"
 )
-
 if check_einde_sessie(st.session_state.profiel) and _laatste_is_coach:
+    # Pauzeer de tijd zolang de gebruiker moet kiezen.
+    st.session_state.profiel["tijd_gepauzeerd"] = True
+    bewaar_profiel(st.session_state.profiel)
+
     st.markdown("---")
     col1, col2 = st.columns(2)
 
@@ -1258,6 +1261,7 @@ if check_einde_sessie(st.session_state.profiel) and _laatste_is_coach:
                 st.session_state.profiel.get("sessie_duur", 10) + 3
             )
             st.session_state.profiel["verlenging_geweest"] = True
+            st.session_state.profiel["tijd_gepauzeerd"] = False
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
@@ -1268,10 +1272,12 @@ if check_einde_sessie(st.session_state.profiel) and _laatste_is_coach:
             key="afronden_knop",
         ):
             st.session_state.profiel["fase_override"] = "afsluiten"
+            st.session_state.profiel["tijd_gepauzeerd"] = False
             bewaar_profiel(st.session_state.profiel)
             st.rerun()
 
     st.stop()
+
 
 # Eerste coach-beurt
 if not st.session_state.geschiedenis:
@@ -1590,6 +1596,7 @@ laatste_is_coach = (
 if (fase_nu in ("afsluiten", "nazit")
         and laatste_is_coach
         and not st.session_state.evaluatie_gestart
+        and not check_einde_sessie(st.session_state.profiel)    
         and st.session_state.geschiedenis):
     st.session_state.evaluatie_gestart = True
     st.session_state.evaluatie_stap = 0
