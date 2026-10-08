@@ -1723,7 +1723,7 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
             if st.session_state.profiel.get("tier") != "sessie":
                 huidig_level = st.session_state.profiel.get("level", 1)
-                if huidig_level < 5:
+                if huidig_level < 15:
                     st.session_state.profiel["level"] = huidig_level + 1
 
             bewaar_profiel(st.session_state.profiel)
@@ -1742,7 +1742,7 @@ if (st.session_state.get("evaluatie_afgerond", False)
 
             if st.session_state.profiel.get("tier") != "sessie":
                 huidig_level = st.session_state.profiel.get("level", 1)
-                if huidig_level < 5:
+                if huidig_level < 15:
                     st.session_state.profiel["level"] = huidig_level + 1
 
             bewaar_profiel(st.session_state.profiel)
