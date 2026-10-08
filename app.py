@@ -260,6 +260,10 @@ def bereken_sessie_minuten(profiel):
 
 
 def bepaal_fase(profiel):
+    # Als de gebruiker heeft gekozen om af te ronden, ga direct naar afsluiten.
+    if profiel.get("fase_override") == "afsluiten":
+        return "afsluiten"
+
     minuten = bereken_sessie_minuten(profiel)
     duur = veilige_duur(profiel)
     percentage = minuten / duur
@@ -269,21 +273,19 @@ def bepaal_fase(profiel):
             return fase
     return "nazit"
 
-
 def check_einde_sessie(profiel):
+    """Bepaalt of de sessie bijna om is."""
     minuten = bereken_sessie_minuten(profiel)
     duur = veilige_duur(profiel)
     fase = bepaal_fase(profiel)
 
-    if minuten >= duur and fase != "afsluiten":
-        return (
-            "De sessietijd is om, maar we zijn nog niet bij de afsluiting. "
-            "Vraag de gebruiker: 'We hebben nog niet alle fasen doorlopen. "
-            "Wil je een paar minuten extra om af te ronden, of zullen we "
-            "het de volgende keer afmaken?'"
-        )
-    return None
+    # Als de sessie al verlengd is, komt de vraag niet meer.
+    if profiel.get("verlenging_geweest", False):
+        return False
 
+    if minuten >= duur and fase != "afsluiten":
+        return True
+    return False
 
 # ============================================================
 # Incheck-vragen
