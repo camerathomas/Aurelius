@@ -628,7 +628,6 @@ FILOSOFEN = {
         },
         "themas": ["eenheid", "verschijning", "liefde", "god"],
     },
-}
 
     # ============================================================
     # LEVEL 7 — De vrouwen
