@@ -144,33 +144,64 @@ def chat(model, messages, system_prompt=None, temperature=0.8, provider="ollama"
 # ============================================================
 def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
     """Bouwt de system prompt voor de coach."""
-    basis = (
-        "Je bent een filosofische coach. Je luistert meer dan je spreekt. "
-        "Je oordeelt niet. Je geeft geen advies. Je stelt korte, open vragen. "
-        "Je vleit niet. Geen 'wat een fascinerende visie'. Geen superlatieven. "
-        "Antwoord in maximaal 3 zinnen."
+    naam = filosoof.get("naam", "de filosoof")
+    stem = filosoof.get("prompt", f"Je bent {naam}.")
+    stroming = filosoof.get("stroming", "")
+    stijl = filosoof.get("stijl", [])
+    themas = filosoof.get("themas", [])
+
+    # --- Stem ---
+    stem_blok = f"[DE STEM DIE JE NU SPREEKT]\n{stem}"
+
+    # --- Stroming ---
+    stroming_blok = ""
+    if stroming:
+        stroming_blok = (
+            f"[STROMING]\n"
+            f"Je komt uit de traditie van: {stroming}.\n"
+            f"Maar je bent {naam}, geen andere filosoof uit die traditie."
+        )
+
+    # --- Stijl ---
+    stijl_blok = ""
+    if stijl:
+        regels = "\n".join(
+            f"- {w.capitalize()}: {u}" for w, u in stijl
+        )
+        stijl_blok = (
+            f"[STIJL — DIT IS BELANGRIJK]\n"
+            f"{regels}\n\n"
+            f"Als je deze stijl niet volgt, dan ben je niet {naam}."
+        )
+
+    # --- Inhoud ---
+    inhoud_blok = ""
+    if themas:
+        inhoud_blok = (
+            f"[INHOUD]\n"
+            f"Je spreekt graag over: {', '.join(themas)}."
+        )
+
+    # --- Basis ---
+    basis_blok = (
+        "[BASIS]\n"
+        "Je bent een filosofische gesprekspartner. Je luistert meer dan je spreekt. "
+        "Je oordeelt niet. Je geeft geen advies. Je vleit niet. "
+        "Geen 'wat een fascinerende visie'. Geen superlatieven."
     )
 
-    stem = f"[DE STEM DIE JE NU SPREEKT]\n{filosoof['prompt']}"
-
-    stijl = (
-        "[STIJL]\n"
-        "- Maximaal 3 zinnen.\n"
-        "- Geen superlatieven.\n"
-        "- Geen echo van labels.\n"
-        "- Reageer op de gebruiker, niet op jezelf."
-    )
-
+    # --- Context ---
     incheck = profiel.get("laatste_incheck", {})
     doel = incheck.get("doel", "een goed gesprek")
 
-    context = (
+    context_blok = (
         f"[CONTEXT]\n"
         f"Modus: {modus}\n"
         f"Doel van de gebruiker: {doel}\n"
         f"Thema's: {', '.join(profiel.get('themas', [])) or 'onbekend'}"
     )
 
+    # --- Fase ---
     fase_blok = ""
     if fase:
         fase_blok = f"\n\n[FASE]\nJe zit nu in de fase: {fase}."
@@ -181,6 +212,7 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
                 + "\n\nGebruik deze vragen als richtlijn, maar pas ze aan op wat de gebruiker zegt."
             )
 
+    # --- Doel ---
     doel_blok = (
         f"\n\n[DOEL]\n"
         f"De gebruiker wil: {doel}\n"
@@ -188,6 +220,7 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
         f"maar niet vaker dan elke 3 minuten."
     )
 
+    # --- Afsluiting ---
     if fase in ["integreren", "afsluiten"]:
         fase_blok += (
             "\n\n[AFSLUITING]\n"
@@ -196,7 +229,20 @@ def bouw_coach_prompt(filosoof, profiel, modus, fase=None, vragen=None):
             "worden uitgenodigd hun beschouwing te geven."
         )
 
-    return f"{basis}\n\n{stem}\n\n{stijl}\n\n{context}{fase_blok}{doel_blok}"
+    # --- Alles samenvoegen ---
+    blokken = [
+        stem_blok,
+        stroming_blok,
+        stijl_blok,
+        inhoud_blok,
+        basis_blok,
+        context_blok,
+    ]
+    
+    tekst = "\n\n".join(b for b in blokken if b)
+    tekst += fase_blok + doel_blok
+
+    return tekst
 
 
 # ============================================================
