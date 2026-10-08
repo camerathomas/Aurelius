@@ -1831,6 +1831,14 @@ if st.session_state.get("toon_duur_keuze", False):
         st.session_state.profiel["sessie_duur"] = duur_map.get(keuze, 10)
         st.session_state.profiel["sessie_afgerond"] = False
         st.session_state.profiel["gebruik_eigen_pantheon"] = gebruik_eigen
+
+        # Als de gebruiker geen specifieke gespreksvorm heeft gekozen,
+        # reset de vorm naar de standaard.
+        if st.session_state.profiel.get("gespreksvorm") not in [
+            "vervolggesprek", "themagesprek", "grote_dialoog", "tweegesprek"
+        ]:
+            st.session_state.profiel["gespreksvorm"] = "themagesprek"
+
         bewaar_profiel(st.session_state.profiel)
         st.session_state.toon_duur_keuze = False
 
