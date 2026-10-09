@@ -90,15 +90,42 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     duur = profiel.get("sessie_duur", 10)
     pantheon_nu = st.session_state.get("pantheon", [])
 
-    # Bepaal het thema: de eerste zin van de gebruiker.
-    thema = "onbekend"
+    # Bepaal het thema: één kernwoord van de gebruiker, één van de filosoof.
+    def _haal_kernwoord(tekst):
+        if not tekst:
+            return ""
+        stopwoorden = {
+            "maar", "want", "dus", "toch", "even", "heel", "veel",
+            "waar", "welk", "welke", "deze", "onze", "jullie",
+            "gewoon", "eigenlijk", "misschien", "natuurlijk", "ik", "ben",
+            "heb", "wil", "ga", "wel", "soms", "gewoon", "waren", "was", "wordt", "worden", "zijn", "heeft", "kan", "kon", "zal", "zou", "moet", "mag", "mocht",
+        }
+        for w in tekst.strip().split():
+            schoon = w.strip(".,!?;:").lower()
+            if len(schoon) > 3 and schoon not in stopwoorden:
+                return schoon.capitalize()
+        return ""
+
+    kern_gebruiker = ""
     for b in geschiedenis:
         if b["naam"] == "Jij":
-            thema = b["tekst"][:40]
+            kern_gebruiker = _haal_kernwoord(b["tekst"])
             break
-    # Als er geen bericht van de gebruiker is, pak het eerste bericht.
-    if thema == "onbekend" and geschiedenis:
-        thema = geschiedenis[0]["tekst"][:40]
+
+    kern_filosoof = ""
+    for b in geschiedenis:
+        if b["naam"] != "Jij":
+            kern_filosoof = _haal_kernwoord(b["tekst"])
+            break
+
+    if kern_gebruiker and kern_filosoof:
+        thema = f"{kern_gebruiker} · {kern_filosoof}"
+    elif kern_gebruiker:
+        thema = kern_gebruiker
+    elif kern_filosoof:
+        thema = kern_filosoof
+    else:
+        thema = "onbekend"
 
     try:
         bewaar_sessie(
