@@ -1447,8 +1447,15 @@ if gebruiker_input:
         st.session_state.wendingen_geweest.append(drempel)
         st.session_state.huidige_wending_label = wending["naam"]
 
-    else:
-        if actieve_filosofen and st.session_state.get("voorzitter"):
+        else:
+        if vorm == "groot_pantheon":
+            from groot_pantheon import kies_beste_filosoof
+            filosoof_naam = kies_beste_filosoof(
+                gebruiker_input,
+                actieve_filosofen,
+                st.session_state.profiel,
+            )
+        elif actieve_filosofen and st.session_state.get("voorzitter"):
             filosoof_naam = kies_filosoof_met_verdeling(
                 actieve_filosofen,
                 st.session_state.voorzitter,
