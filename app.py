@@ -1838,7 +1838,7 @@ if st.session_state.get("toon_duur_keuze", False):
         # Als de gebruiker geen specifieke gespreksvorm heeft gekozen,
         # reset de vorm naar de standaard.
         if st.session_state.profiel.get("gespreksvorm") not in [
-            "vervolggesprek", "themagesprek", "grote_dialoog", "tweegesprek"
+            "vervolggesprek", "themagesprek", "grote_dialoog", "tweegesprek", "groot_pantheon"
         ]:
             st.session_state.profiel["gespreksvorm"] = "themagesprek"
 
