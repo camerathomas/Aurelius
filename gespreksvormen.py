@@ -60,7 +60,7 @@ GESPREKSVORMEN = {
             "onderzoek wat er sindsdien veranderd is."
         ),
     },
-        "groot_pantheon": {
+    "groot_pantheon": {
         "naam": "Groot Pantheon",
         "beschrijving": "Alle filosofen. Wie het beste past, krijgt de beurt.",
         "icoon": "🌌",
