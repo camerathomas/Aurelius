@@ -341,7 +341,7 @@ def _toon_gespreksvormen(profiel, gebruiker_id):
         return
     
     # De drie vormen: themagesprek, grote_dialoog, tweegesprek
-    vormen = ["themagesprek", "grote_dialoog", "tweegesprek"]
+    vormen = ["themagesprek", "grote_dialoog", "tweegesprek", "groot_pantheon"]
     
     col1, col2 = st.columns(2)
     
