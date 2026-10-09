@@ -82,10 +82,15 @@ def kies_filosofen(vorm_naam, pantheon, voorzitter=None):
     Bepaalt welke filosofen meedoen aan deze gespreksvorm.
     - 'pantheon': het hele pantheon
     - 'één': alleen de voorzitter (of de eerste filosoof)
+    - 'alles': alle filosofen uit alle pantheons
     """
     vorm = GESPREKSVORMEN.get(vorm_naam)
     if not vorm:
         return pantheon
+
+    if vorm["filosofen"] == "alles":
+        from filosofen import FILOSOFEN
+        return list(FILOSOFEN.keys())
 
     if vorm["filosofen"] == "één":
         if voorzitter and voorzitter in pantheon:
