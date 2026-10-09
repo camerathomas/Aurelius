@@ -94,11 +94,11 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     thema = "onbekend"
     for b in geschiedenis:
         if b["naam"] == "Jij":
-            thema = b["tekst"][:60]
+            thema = b["tekst"][:40]
             break
     # Als er geen bericht van de gebruiker is, pak het eerste bericht.
     if thema == "onbekend" and geschiedenis:
-        thema = geschiedenis[0]["tekst"][:60]
+        thema = geschiedenis[0]["tekst"][:40]
 
     try:
         bewaar_sessie(
