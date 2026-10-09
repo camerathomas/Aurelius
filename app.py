@@ -88,7 +88,7 @@ def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     gebruiker_id = profiel.get("gebruiker_id") or "onbekend"
     incheck = profiel.get("laatste_incheck", {})
     duur = profiel.get("sessie_duur", 10)
-    pantheon_nu = st.session_state.get("pantheon", [])
+    pantheon_nu = st.session_state.get("pantheon") or []
 
     # Bepaal het thema: één kernwoord van de gebruiker, één van de filosoof.
     def _haal_kernwoord(tekst):
