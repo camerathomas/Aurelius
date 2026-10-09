@@ -85,56 +85,34 @@ api_key = st.secrets["connections"]["aurelius"]["GEMINI_API_KEY"]
 # ============================================================
 def archiveer_sessie(profiel, geschiedenis, rondes, afsluiter, api_key):
     """Slaat de sessie op in het archief in de database."""
-    gebruiker_id = st.session_state.get("huidige_gebruiker", "remco")
+    gebruiker_id = profiel.get("gebruiker_id") or "onbekend"
     incheck = profiel.get("laatste_incheck", {})
     duur = profiel.get("sessie_duur", 10)
     pantheon_nu = st.session_state.get("pantheon", [])
 
-    # Bepaal het thema met de AI
+    # Bepaal het thema: de eerste zin van de gebruiker.
     thema = "onbekend"
-    try:
-        client = genai.Client(api_key=api_key)
-        gesprek_tekst = "\n".join(
-            f"{b['naam']}: {b['tekst']}" for b in geschiedenis[-10:]
-        )
-        prompt = (
-            "Geef in maximaal 5 woorden het thema van dit gesprek. "
-            "Alleen het thema, geen uitleg, geen punctuatie.\n\n"
-            + gesprek_tekst
-        )
-        thema_antwoord, _ = vraag_ai(client, prompt)
-        thema = thema_antwoord.strip()[:60]
-    except Exception:
-        # Fallback: gebruik het eerste bericht van de gebruiker
-        for b in geschiedenis:
-            if b["naam"] == "Jij":
-                thema = b["tekst"][:60]
-                break
-
+    for b in geschiedenis:
+        if b["naam"] == "Jij":
+            thema = b["tekst"][:60]
+            break
+    # Als er geen bericht van de gebruiker is, pak het eerste bericht.
+    if thema == "onbekend" and geschiedenis:
+        thema = geschiedenis[0]["tekst"][:60]
 
     try:
-        st.write(f"DEBUG: archiveer_sessie draait")
-        st.write(f"DEBUG: gebruiker_id = {gebruiker_id}")
-        st.write(f"DEBUG: thema = {(thema[:50] + '...') if thema and len(thema) > 50 else thema}")
-        st.write(f"DEBUG: duur = {duur} (type: {type(duur).__name__})")
-        st.write(f"DEBUG: pantheon = {pantheon_nu}")
-        st.write(f"DEBUG: gesprek heeft {len(gesprek)} berichten")
-        st.write(f"DEBUG: rondes = {type(rondes).__name__}")
-        st.write(f"DEBUG: afsluiter = {type(afsluiter).__name__}")
-
         bewaar_sessie(
             gebruiker_id=gebruiker_id,
             thema=thema,
             incheck=incheck,
-            gesprek=gesprek,
+            gesprek=geschiedenis,
             rondes=rondes or {},
             afsluiter=afsluiter or {},
             duur_minuten=duur,
             pantheon=pantheon_nu,
         )
-        st.success("DEBUG: sessie opgeslagen!")
     except Exception as e:
-        st.error(f"FOUT bij archiveren: {type(e).__name__}: {e}")
+        st.error(f"Fout bij archiveren: {e}")
 
 def reset_voor_nieuwe_sessie():
     """Reset alles behalve het profiel, zodat een nieuwe sessie kan beginnen."""
