@@ -1,6 +1,6 @@
 """
 Dashboard voor Aurelius.
-Toont het archief, de voortgang, de favorieten, en de instellingen.
+Toont het archief, de voortgang en de favorieten.
 """
 
 import streamlit as st
@@ -312,7 +312,7 @@ def _toon_eigen_pantheon(profiel, level, tier):
         st.success("Eigen pantheon opgeslagen.")
 
 # ============================================================
-# Gesreksvormen
+# Gespreksvormen
 # ============================================================
 
 def _toon_gespreksvormen(profiel, gebruiker_id):
