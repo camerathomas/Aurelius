@@ -248,7 +248,9 @@ def maak_pdf(
     thema = sessie.get("thema", "") or ""
     duur = sessie.get("duur_minuten", 10)
 
-    pantheon = sessie.get("pantheon", [])
+    pantheon = sessie.get("pantheon") or []
+    if not isinstance(pantheon, list):
+        pantheon = []
     pantheon_namen = ", ".join(
         FILOSOFEN[f]["naam"]
         for f in pantheon
