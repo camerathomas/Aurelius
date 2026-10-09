@@ -356,11 +356,3 @@ def _toon_gespreksvormen(profiel, gebruiker_id):
                 st.session_state.toon_dashboard = False
                 st.session_state.toon_duur_keuze = True
                 st.rerun()
-
-# ============================================================
-# Instellingen
-# ============================================================
-def _toon_instellingen(profiel, gebruiker_id):
-    """Toont de instellingen."""
-    st.markdown("### Instellingen")
-    st.caption("Deze functie komt later.")
