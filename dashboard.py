@@ -9,13 +9,8 @@ from filosofen import FILOSOFEN, PANTHEON_PER_LEVEL
 from opslag import laad_sessies, bewaar_profiel
 
 
-def toon_dashboard(gebruiker_id, profiel):
-    """Toont het hele dashboard."""
-    st.title("🏛️ Jouw dashboard")
-    st.caption(f"Welkom terug, {gebruiker_id}.")
-
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["Archief", "Voortgang", "Favorieten", "Instellingen", "Gespreksvormen"]
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Archief", "Voortgang", "Favorieten", "Gespreksvormen"]
     )
 
     with tab1:
@@ -28,9 +23,6 @@ def toon_dashboard(gebruiker_id, profiel):
         _toon_favorieten(profiel)
 
     with tab4:
-        _toon_instellingen(profiel, gebruiker_id)
-
-    with tab5:
         _toon_gespreksvormen(profiel, gebruiker_id)
 
 # ============================================================
