@@ -2275,4 +2275,136 @@ BIOGRAFIEEN = {
             "ook als iemand anders is dan jij."
         ),
     },      
-}          
+}
+
+# ============================================================
+# PANTHEON-VERDELING
+# ============================================================
+# Elk level heeft een pantheon van 5 filosofen.
+# Hieronder staat per pantheon een korte uitleg van de logica
+# achter de samenstelling.
+
+PANTHEON_PER_LEVEL = {
+    1: ["socrates", "plato", "marcus_aurelius", "boeddha", "maria_montessori"],
+    2: ["aristoteles", "spinoza", "confucius", "lao_tze", "camus"],
+    3: ["nietzsche", "marx", "hannah_arendt", "gandhi", "kierkegaard"],
+    4: ["schopenhauer", "descartes", "leibniz", "willem_van_ockham", "thomas_aquinas"],
+    5: ["erasmus", "pascal", "mary_wollstonecraft", "belle_van_zuylen", "hadewijch"],
+    6: ["nagarjuna", "zhuangzi", "dogen", "rumi", "ibn_arabi"],
+    7: ["hypatia", "christine_de_pizan", "simone_de_beauvoir", "simone_weil", "iris_murdoch"],
+    8: ["heidegger", "wittgenstein", "sartre", "foucault", "derrida"],
+    9: ["meister_eckhart", "teresa_van_avila", "johannes_van_het_kruis", "jakob_bohme", "hildegard_van_bingen"],
+    10: ["ibn_khaldun", "avicenna", "al_ghazali", "zhu_xi", "wang_yangming"],
+    11: ["francis_bacon", "david_hume", "voltaire", "rousseau", "christina_van_zweden"],
+    12: ["kant", "hegel", "popper", "feyerabend", "russell"],
+    13: ["thomas_kuhn", "einstein", "de_bono", "mill", "tumarkin"],
+    14: ["hermes_trismegistos", "valentinus", "ficino", "bruno", "luther"],
+    15: ["roodkapje", "pinocchio", "sneeuwwitje", "doornroosje", "zeven_dwergen"],
+}
+
+# ============================================================
+# LOGICA VAN ELK PANTHEON
+# ============================================================
+
+PANTHEON_LOGICA = {
+    1: (
+        "Level 1 is het kennismakingspantheon. Hier staan vijf heel verschillende denkers "
+        "die samen de breedte van de filosofie laten zien: Socrates (de vragende onderzoeker), "
+        "Plato (de denker van de idealen), Marcus Aurelius (de praktische levenskunstenaar), "
+        "Boeddha (de oosterse weg van loslaten) en Maria Montessori (de pedagoog die gelooft "
+        "in groei en leren). De logica is niet streng thematisch, maar bedoeld om de speler "
+        "in aanraking te brengen met verschillende stijlen: Grieks, Romeins, Indiaas, modern. "
+        "Zo krijgt de speler een eerste gevoel van wat filosofie allemaal kan zijn."
+    ),
+    2: (
+        "Level 2 verdiept het denken. Aristoteles brengt de logica en het middenpad, "
+        "Spinoza de eenheid van alles, Confucius de sociale verhoudingen, Lao Tze de zachtheid "
+        "van het taoïsme, en Camus het absurde en de opstand. Samen laten ze zien dat filosofie "
+        "niet alleen gaat over denken, maar ook over hoe je leeft en met anderen omgaat."
+    ),
+    3: (
+        "Level 3 is het pantheon van de schuring. Hier staan denkers die confronteren, "
+        "provoceren en je uit je comfort halen: Nietzsche met zijn kritiek op de moraal, "
+        "Marx met zijn analyse van macht en economie, Hannah Arendt met haar vraag naar "
+        "verantwoordelijkheid, Gandhi met zijn geweldloosheid, en Kierkegaard met zijn angst "
+        "en sprong. De logica is: eerst schudden, dan groeien."
+    ),
+    4: (
+        "Level 4 is het pantheon van de systemen. Schopenhauer, Descartes, Leibniz, "
+        "Willem van Ockham en Thomas Aquinas zijn allemaal denkers die de werkelijkheid "
+        "in een groot verband proberen te vatten: met metafysica, twijfel, monaden, "
+        "het scheermes of het geloof en de rede. Hier leert de speler dat filosofie ook "
+        "een bouwwerk kan zijn."
+    ),
+    5: (
+        "Level 5 is het pantheon van de vrijheid. Erasmus, Pascal, Mary Wollstonecraft, "
+        "Belle van Zuylen en Hadewijch staan voor verschillende vormen van bevrijding: "
+        "van de dwaasheid, van de rede, van de vrouw, van de conventie, en van de ziel. "
+        "De logica is: vrijheid is geen vanzelfsprekendheid, maar iets waar je voor moet vechten."
+    ),
+    6: (
+        "Level 6 is het pantheon van de oosterse verdieping. Nāgārjuna, Zhuangzi, Dōgen, "
+        "Rumi en Ibn Arabi brengen leegte, spel, aanwezigheid, liefde en eenheid. "
+        "De logica is: het westerse denken is niet het enige denken. Hier leert de speler "
+        "dat wijsheid ook stilte, paradox en overgave kan zijn."
+    ),
+    7: (
+        "Level 7 is het pantheon van de non-conformisten. Hypatia, Christine de Pizan, "
+        "Simone de Beauvoir, Simone Weil en Iris Murdoch zijn allemaal vrouwen die "
+        "tegen de stroom in dachten en leefden. De logica is: filosofie is niet alleen "
+        "voor mannen, en niet alleen voor wie zich aanpast."
+    ),
+    8: (
+        "Level 8 is het pantheon van de modernen. Heidegger, Wittgenstein, Sartre, "
+        "Foucault en Derrida zijn de grote twintigste-eeuwse denkers van taal, macht, "
+        "vrijheid en deconstructie. De logica is: na de systemen komt de twijfel, "
+        "en na de twijfel komt de taal."
+    ),
+    9: (
+        "Level 9 is het pantheon van de mystici. Meister Eckhart, Teresa van Ávila, "
+        "Johannes van het Kruis, Jakob Böhme en Hildegard van Bingen zoeken allemaal "
+        "het goddelijke in het innerlijk. De logica is: sommige waarheden zijn niet "
+        "met de rede te vangen, maar alleen met de ziel."
+    ),
+    10: (
+        "Level 10 is het pantheon van de wereld. Ibn Khaldun, Avicenna, Al-Ghazali, "
+        "Zhu Xi en Wang Yangming brengen geschiedenis, geneeskunde, mystiek, rede en "
+        "geweten samen. De logica is: filosofie is mondiaal, en elke cultuur heeft "
+        "haar eigen grote denkers."
+    ),
+    11: (
+        "Level 11 is het pantheon van de Verlichters. Francis Bacon, David Hume, "
+        "Voltaire, Rousseau en Christina van Zweden staan voor wetenschap, scepsis, "
+        "satire, natuur en vrijdenken. De logica is: durf zelf te denken."
+    ),
+    12: (
+        "Level 12 is het pantheon van de kritische traditie. Kant, Hegel, Popper, "
+        "Feyerabend en Russell onderzoeken de grenzen van kennis, geschiedenis en "
+        "wetenschap. De logica is: denk kritisch, ook over je eigen denken."
+    ),
+    13: (
+        "Level 13 is het pantheon van de wetenschapsfilosofen. Thomas Kuhn, Einstein, "
+        "De Bono, Mill en Tumarkin verbinden wetenschap met creativiteit, vrijheid en "
+        "verantwoordelijkheid. De logica is: wetenschap is mensenwerk."
+    ),
+    14: (
+        "Level 14 is het pantheon van de esoterici. Hermes Trismegistos, Valentinus, "
+        "Ficino, Bruno en Luther staan voor verborgen kennis, gnosis, kosmische liefde, "
+        "oneindigheid en geweten. De logica is: achter de zichtbare wereld ligt een "
+        "diepere laag, en wie durft te zoeken, vindt."
+    ),
+    15: (
+        "Level 15 is het pantheon van de sprookjes. Roodkapje, Pinocchio, Sneeuwwitje, "
+        "Doornroosje en de Zeven Dwergen brengen de wijsheid van het verhaal. "
+        "De logica is: niet alle waarheid is filosofisch. Soms zit ze in een sprookje, "
+        "en begrijpt een kind haar beter dan een professor."
+    ),
+}
+
+# ============================================================
+# HULPFUNCTIE
+# ============================================================
+
+def pantheon_uitleg(level):
+    """Geeft de uitleg van het pantheon van een bepaald level."""
+    return PANTHEON_LOGICA.get(level, "Voor dit level is nog geen uitleg beschikbaar.")
