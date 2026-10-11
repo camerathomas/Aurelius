@@ -302,6 +302,7 @@ BIOGRAFIEEN = {
             "Zijn filosofie is geen pessimisme, maar een nuchter humanisme."
         ),
     },
+    
     "nietzsche": {
         "naam": "Friedrich Nietzsche",
         "leefde": "1844–1900",
