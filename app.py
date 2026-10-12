@@ -1820,7 +1820,8 @@ if (st.session_state.get("evaluatie_afgerond", False)
     with col2:
         if st.button("Nee, bewaar niet", key="archief_nee"):
             st.session_state.profiel["sessie_afgerond"] = True
-
+            st.session_state.profiel["sessie_tijd"] = 0   
+            
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
             )
