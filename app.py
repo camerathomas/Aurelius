@@ -304,6 +304,9 @@ def bepaal_fase(profiel):
 
 def check_einde_sessie(profiel):
     """Bepaalt of de sessie bijna om is."""
+    if profiel.get("tijd_gepauzeerd", False):
+        return False
+
     minuten = bereken_sessie_minuten(profiel)
     duur = veilige_duur(profiel)
     fase = bepaal_fase(profiel)
