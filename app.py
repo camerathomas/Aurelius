@@ -533,6 +533,7 @@ if "profiel" not in st.session_state:
         st.session_state.incheck = {}
         st.session_state.incheck_stap = 0
         st.session_state.incheck_afgerond = False
+        st.session_state.toon_duur_keuze = True        
     else:
         # Sessie is niet afgerond: laad de geschiedenis uit de database.
         opgeslagen = laad_gesprek(gebruiker_id, limiet=max_historie * 2)
