@@ -503,6 +503,10 @@ if "toon_dashboard" not in st.session_state:
     st.session_state.toon_dashboard = False
 if "toon_duur_keuze" not in st.session_state:
     st.session_state.toon_duur_keuze = False
+if "toon_privacy" not in st.session_state:
+    st.session_state.toon_privacy = False
+if "toon_voorwaarden" not in st.session_state:
+    st.session_state.toon_voorwaarden = False    
 
 # Laad het profiel één keer per sessie.
 # Bij een nieuwe gebruiker: F5 → naamveld leeg → naam intypen → profiel wordt geladen.
