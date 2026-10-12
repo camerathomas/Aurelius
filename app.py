@@ -1141,6 +1141,7 @@ if not st.session_state.profiel.get("incheck_gedaan", False):
             st.session_state.profiel["sessie_tijd"] = 0
             st.session_state.profiel["laatste_bericht"] = time.time()
             st.session_state.profiel["incheck_gedaan"] = True
+            st.session_state.profiel["sessie_afgerond"] = False
 
             st.session_state.grote_wending_geweest = False
             st.session_state.evaluatie_gestart = False
