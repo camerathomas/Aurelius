@@ -1266,31 +1266,31 @@ if check_einde_sessie(st.session_state.profiel) and _laatste_is_coach:
     st.markdown("---")
     col1, col2 = st.columns(2)
 
-    with col1:
-        if st.button(
-            "⏱️ Nog 3 minuten",
-            type="primary",
-            use_container_width=True,
-            key="verleng_knop",
-        ):
-            st.session_state.profiel["sessie_duur"] = (
-                st.session_state.profiel.get("sessie_duur", 10) + 3
-            )
-            st.session_state.profiel["verlenging_geweest"] = True
-            st.session_state.profiel["tijd_gepauzeerd"] = False
-            bewaar_profiel(st.session_state.profiel)
-            st.rerun()
+with col1:
+    if st.button(
+        "⏱️ Nog 3 minuten",
+        type="primary",
+        use_container_width=True,
+        key="verleng_knop",
+    ):
+        st.session_state.profiel["sessie_duur"] = (
+            st.session_state.profiel.get("sessie_duur", 10) + 3
+        )
+        st.session_state.profiel["verlenging_geweest"] = True
+        st.session_state.profiel["tijd_gepauzeerd"] = False   # ← tijd loopt weer
+        bewaar_profiel(st.session_state.profiel)
+        st.rerun()
 
-    with col2:
-        if st.button(
-            "🕊️ Afronden",
-            use_container_width=True,
-            key="afronden_knop",
-        ):
-            st.session_state.profiel["fase_override"] = "afsluiten"
-            st.session_state.profiel["tijd_gepauzeerd"] = False
-            bewaar_profiel(st.session_state.profiel)
-            st.rerun()
+with col2:
+    if st.button(
+        "🕊️ Afronden",
+        use_container_width=True,
+        key="afronden_knop",
+    ):
+        st.session_state.profiel["fase_override"] = "afsluiten"
+        st.session_state.profiel["tijd_gepauzeerd"] = True    # ← blijft nu True
+        bewaar_profiel(st.session_state.profiel)
+        st.rerun()
 
     st.stop()
 
