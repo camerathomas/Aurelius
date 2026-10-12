@@ -414,15 +414,6 @@ if st.sidebar.button("📊 Dashboard"):
     st.rerun()
 
 st.sidebar.markdown("---")
-if st.sidebar.button("📜 Privacyverklaring"):
-    st.session_state.toon_privacy = True
-    st.rerun()
-
-if st.sidebar.button("📋 Algemene voorwaarden"):
-    st.session_state.toon_voorwaarden = True
-    st.rerun()
-
-st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Wis alle gesprekken"):
     try:
         wis_gesprek(gebruiker_id)
