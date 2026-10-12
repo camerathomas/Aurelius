@@ -902,7 +902,17 @@ if not st.session_state.profiel.get("proefsessie_geweest", False):
 # ============================================================
 # BETAALSCHERM
 # ============================================================
+# ============================================================
+# BETAALSCHERM
+# ============================================================
 if st.session_state.get("toon_betaalscherm"):
+    # Eerst: acceptatie van privacy en voorwaarden
+    if not st.session_state.get("acceptatie_gedaan", False):
+        from acceptatie import toon_acceptatie
+        if toon_acceptatie():
+            st.rerun()
+        st.stop()
+
     keuze = st.session_state.toon_betaalscherm
 
     st.markdown("---")
@@ -941,6 +951,7 @@ if st.session_state.get("toon_betaalscherm"):
 
         if st.button("← Terug", key="keuze_terug"):
             st.session_state.toon_betaalscherm = False
+            st.session_state.acceptatie_gedaan = False   # ← opnieuw accepteren
             st.rerun()
 
         st.stop()
