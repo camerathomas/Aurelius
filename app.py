@@ -1800,6 +1800,7 @@ if (st.session_state.get("evaluatie_afgerond", False)
             )
 
             st.session_state.profiel["sessie_afgerond"] = True
+            st.session_state.profiel["sessie_tijd"] = 0            # ← nieuw
 
             st.session_state.profiel["gesprekken_gehad"] = (
                 st.session_state.profiel.get("gesprekken_gehad", 0) + 1
