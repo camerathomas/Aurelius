@@ -1261,7 +1261,9 @@ _laatste_is_coach = (
     _laatste_bericht is not None
     and _laatste_bericht.get("naam") != "Jij"
 )
-if check_einde_sessie(st.session_state.profiel) and _laatste_is_coach:
+if (check_einde_sessie(st.session_state.profiel)
+        and _laatste_is_coach
+        and not st.session_state.get("evaluatie_gestart", False)):
     # Pauzeer de tijd zolang de gebruiker moet kiezen.
     st.session_state.profiel["tijd_gepauzeerd"] = True
     bewaar_profiel(st.session_state.profiel)
