@@ -583,7 +583,30 @@ if st.session_state.get("toon_dashboard", False):
     toon_dashboard(gebruiker_id, st.session_state.profiel)
     st.stop()
 
+# ============================================================
+# Privacyverklaring
+# ============================================================
+if st.session_state.get("toon_privacy", False):
+    if st.button("← Terug naar de app"):
+        st.session_state.toon_privacy = False
+        st.rerun()
 
+    from privacy import toon_privacy
+    toon_privacy()
+    st.stop()
+
+
+# ============================================================
+# Algemene voorwaarden
+# ============================================================
+if st.session_state.get("toon_voorwaarden", False):
+    if st.button("← Terug naar de app"):
+        st.session_state.toon_voorwaarden = False
+        st.rerun()
+
+    from voorwaarden import toon_voorwaarden
+    toon_voorwaarden()
+    st.stop()
 # ============================================================
 # Welkomstscherm
 # ============================================================
