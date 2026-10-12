@@ -199,11 +199,76 @@ def laad_profiel(gebruiker_id):
                 ),
                 "sessies_gekocht": (
                     int(rij[22]) if len(rij) > 22 and rij[22] else 1
-                 ),
+                ),
                 "gespreksvorm": (
                     rij[23] if len(rij) > 23 and rij[23] else "themagesprek"
                 ),
-            } 
+            }
+
+        # Gebruiker bestaat niet → maak een nieuw profiel aan.
+        nieuw_profiel = {
+            "_is_fallback": False,
+            "gebruiker_id": gebruiker_id,
+            "waarden": {
+                "directheid": 5, "respect": 5, "vertrouwen": 5,
+                "verbinding": 5, "analyse": 5,
+            },
+            "laatste_incheck": {},
+            "themas": [],
+            "waarde_volgorde": [],
+            "sessie_duur": 10,
+            "heeft_eerder_gesproken": False,
+            "sessie_tijd": 0,
+            "sessie_start": 0,
+            "laatste_bericht": 0,
+            "level": 1,
+            "tier": "sessie",
+            "favoriete_filosoof": None,
+            "eigen_pantheon": [],
+            "sessie_afgerond": True,
+            "gebruik_eigen_pantheon": False,
+            "proefsessie_geweest": False,
+            "incheck_gedaan": False,
+            "betaald": False,
+            "welkom_geweest": False,
+            "gesprekken_gehad": 0,
+            "sessies_gekocht": 1,
+            "gespreksvorm": "themagesprek",
+        }
+
+        # Sla het direct op, zodat het bestaat bij de volgende keer.
+        bewaar_profiel(nieuw_profiel)
+        return nieuw_profiel
+
+    except Exception as e:
+        print(f"FOUT bij laden profiel '{gebruiker_id}': {e}")
+
+    return {
+        "_is_fallback": True,
+        "gebruiker_id": gebruiker_id,
+        "waarden": {"directheid": 5, "respect": 5, "vertrouwen": 5, "verbinding": 5, "analyse": 5},
+        "laatste_incheck": {},
+        "themas": [],
+        "waarde_volgorde": [],
+        "sessie_duur": 10,
+        "heeft_eerder_gesproken": False,
+        "sessie_tijd": 0,
+        "sessie_start": 0,
+        "laatste_bericht": 0,
+        "level": 1,
+        "tier": "sessie",
+        "favoriete_filosoof": None,
+        "eigen_pantheon": [],
+        "sessie_afgerond": True,
+        "gebruik_eigen_pantheon": False,
+        "proefsessie_geweest": False,
+        "incheck_gedaan": False,
+        "betaald": False,
+        "welkom_geweest": False,
+        "gesprekken_gehad": 0,
+        "sessies_gekocht": 1,
+        "gespreksvorm": "themagesprek",
+    } 
 
     except Exception as e:
         print(f"FOUT bij laden profiel '{gebruiker_id}': {e}")
